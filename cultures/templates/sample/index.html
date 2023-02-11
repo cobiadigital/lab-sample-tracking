@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Posts{% endblock %}</h1>
+  {% if g.user %}
+    <a class="action" href="{{ url_for('sample.create') }}">New</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {% for item in items %}
+    <article class="item">
+      <header>
+        <div>
+          <h1>{{ item['title'] }}</h1>
+          <div class="about">by {{ item['email'] }} on {{ item['created'].strftime('%Y-%m-%d') }}</div>
+        </div>
+        {% if g.user['id'] == item['author_id'] %}
+          <a class="action" href="{{ url_for('sample.update', id=item['id']) }}">Edit</a>
+        {% endif %}
+      </header>
+        <p>{{ item['full_id'] }} </p>
+      <p>{{ item['name'] }} {{ item['title'] }} - {{ item['comment'] }} <br />>
+          {{ item['date'].strftime("%Y%m%d") }} {{ item['initials'] }}</p>
+      <p class="body">{{ item['body'] }}</p>
+    </article>
+    {% if not loop.last %}
+      <hr>
+    {% endif %}
+  {% endfor %}
+  <form action="{{ url_for('sample.makelabels') }}" method="post">
+    <input class="danger" type="submit" value="Make Labels" onclick="return confirm('Are you sure?');">
+  </form>{% endblock %}

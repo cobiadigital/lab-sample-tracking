@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block header %}
+{% endblock %}
+{% block content %}
+
+<form method="post" class="mx-auto" style="max-width: 330px; padding: 15px;">
+{#    <img class="mb-4" src="/docs/5.3/assets/brand/bootstrap-logo.svg" alt="" width="72" height="57">#}
+    <h1 class="h3 mb-3 fw-normal">Please register</h1>
+
+    <div class="form-floating">
+      <input type="email" class="form-control" id="floatingInput" name="email" placeholder="name@example.com" required>
+      <label for="floatingInput">Email address</label>
+    </div>
+    <div class="form-floating">
+      <input type="password" class="form-control" id="floatingPassword" name="password" placeholder="Password" required>
+      <label for="floatingPassword">Password</label>
+    </div>
+        <div class="form-floating">
+      <input type="text" class="form-control" id="floatingInput" name="initials" placeholder="Initials" required>
+      <label for="floatingInput">Initials</label>
+    </div>
+        <select class="form-select" aria-label="Default select example" name="lab_id">
+          <option selected>Lab</option>
+            {% for lab in labs %}
+                <option value="{{ lab['id'] }}">{{ lab['name'] }}</option>
+            {% endfor %}
+        </select>
+
+    <button class="w-100 btn btn-lg btn-primary" type="submit">Register</button>
+  </form>
+    </div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}{{ item['title'] }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    <article class="item">
+      <header>
+        <div>
+          <h1>{{ item['title'] }}</h1>
+          <div class="about">by {{ item['email'] }} on {{ item['created'].strftime('%Y-%m-%d') }}</div>
+        </div>
+        {% if g.user['id'] == item['author_id'] %}
+          <a class="action" href="{{ url_for('sample.update', id=item['id']) }}">Edit</a>
+        {% endif %}
+      </header>
+        <p>{{ item['name'] }}-{{ item['title'] }}-{{ item['comment'] }}-{{ item['date'].strftime("%Y%m%d")}}{{ item['initials'] }}  </p>
+      <p>{{ item['name'] }} {{ item['title'] }} - {{ item['comment'] }} <br />>
+          {{ item['date'].strftime("%Y%m%d") }} {{ item['initials'] }}</p>
+      <p class="body">{{ item['body'] }}</p>
+    </article>
+  <form action="{{ url_for('sample.makelabels') }}" method="post">
+    <input class="danger" type="submit" value="Make Labels" onclick="return confirm('Are you sure?');">
+  </form>{% endblock %}
