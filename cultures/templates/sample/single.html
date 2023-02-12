@@ -1,8 +1,5 @@
 {% extends 'base.html' %}
 
-{% block header %}
-  <h1>{% block title %}{{ item['title'] }}{% endblock %}</h1>
-{% endblock %}
 
 {% block content %}
     <article class="item">
@@ -10,16 +7,20 @@
         <div>
           <h1>{{ item['title'] }}</h1>
           <div class="about">by {{ item['email'] }} on {{ item['created'].strftime('%Y-%m-%d') }}</div>
+             {% if item['transfer_from'] is not none %}
+                 <div class="about"><a href="{{ url_for('sample.single', id=item['transfer_from']) }}">{{ item['transfer_from'] }}</a></div>
+             {% endif %}
         </div>
         {% if g.user['id'] == item['author_id'] %}
           <a class="action" href="{{ url_for('sample.update', id=item['id']) }}">Edit</a>
         {% endif %}
       </header>
-        <p>{{ item['name'] }}-{{ item['title'] }}-{{ item['comment'] }}-{{ item['date'].strftime("%Y%m%d")}}{{ item['initials'] }}  </p>
-      <p>{{ item['name'] }} {{ item['title'] }} - {{ item['comment'] }} <br />>
+      <p>{{ item['name'] }} {{ item['title'] }} - {{ item['comment'] }} <br />
           {{ item['date'].strftime("%Y%m%d") }} {{ item['initials'] }}</p>
       <p class="body">{{ item['body'] }}</p>
     </article>
-  <form action="{{ url_for('sample.makelabels') }}" method="post">
-    <input class="danger" type="submit" value="Make Labels" onclick="return confirm('Are you sure?');">
+    <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary">Duplicate</a>
+
+  <form action="{{ url_for('sample.delete', id=item['id']) }}" method="post">
+    <input class="danger" type="submit" value="delete" onclick="return confirm('Are you sure?');">
   </form>{% endblock %}

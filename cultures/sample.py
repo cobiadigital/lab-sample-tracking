@@ -32,8 +32,8 @@ def index():
     db = get_db()
     items = db.execute(
         'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email,'
-        ' l.name, s.initials, full_id FROM sample s JOIN user u ON s.author_id = u.id'
-        ' JOIN lab l ON s.lab_id = l.id ORDER BY s.created DESC'
+        ' l.name, s.initials, full_id, transfer_from FROM sample s  JOIN user u ON s.author_id = u.id'
+        ' JOIN lab l ON s.lab_id = l.id WHERE deleted IS NULL ORDER BY s.created DESC'
     ).fetchall()
     return render_template('sample/index.html', items=items)
 
@@ -47,9 +47,6 @@ def create():
     ).fetchall()
     lab_id_lst = [(lab['id']) for lab in labs]
     lab_name_lst = [(lab['name']) for lab in labs]
-    i = 0
-    lab_dict = dict.fromkeys(lab_id_lst)
-
     lab_dict = {}
     for key in lab_id_lst:
         for value in lab_name_lst:
@@ -96,10 +93,9 @@ def create():
 
 def get_sample(id, check_author=True):
     item = get_db().execute(
-        'SELECT s.id, title, date, comment, body, s.created, name, s.initials, s.lab_id, name, email'
-        ' FROM sample s JOIN user u ON s.author_id = u.id '
-        ' JOIN lab l ON s.lab_id = l.id '
-        ' WHERE s.id = ?',
+        'SELECT s.id, title, date, comment, body, s.created, name, s.initials, s.lab_id, name, '
+        'email, full_id, transfer_from FROM sample s JOIN user u ON s.author_id = u.id '
+        ' JOIN lab l ON s.lab_id = l.id WHERE s.id = ? ',
         (id,)
     ).fetchone()
 
@@ -120,14 +116,13 @@ def single(id):
 @bp.route('/<int:id>/update', methods=('GET', 'POST'))
 @login_required
 def update(id):
-
+    labs = db.execute(
+        'SELECT * FROM lab'
+    ).fetchall()
     form = CreateForm()
     item = get_sample(id)
     if request.method == 'GET':
         db = get_db()
-        labs = db.execute(
-            'SELECT * FROM lab'
-        ).fetchall()
         form.title.data = item['title']
         form.date.data = item['date']
         form.comment.data = item['comment']
@@ -151,6 +146,11 @@ def update(id):
         if error is not None:
             flash(error)
         else:
+            lab_dict = {}
+            for key in lab_id_lst:
+                for value in lab_name_lst:
+                    lab_dict[key] = value
+                    break
             db = get_db()
             db.execute(
                 'UPDATE sample SET title = ?, date = ?, comment = ?, lab_id = ?, initials = ?, body = ?'
@@ -162,12 +162,67 @@ def update(id):
 
     return render_template('sample/update.html', form=form, item=item)
 
+@bp.route('/<int:id>/duplicate', methods=('GET', 'POST'))
+@login_required
+def duplicate(id):
+    db = get_db()
+    labs = db.execute(
+        'SELECT * FROM lab'
+    ).fetchall()
+    form = CreateForm()
+    item = get_sample(id)
+    if request.method == 'GET':
+        form.title.data = item['title']
+        form.date.data = datetime.now()
+        form.comment.data = item['comment']
+        form.lab.choices = [(lab['id'], lab['name']) for lab in labs]
+        form.lab.data = (g.user['lab_id'], g.user['name'])
+        form.initials.data = g.user['initials']
+        form.body.data = item['body']
+
+    if request.method == 'POST':
+        title = form.title.data
+        date = form.date.data
+        comment = form.comment.data
+        lab_id = form.lab.data
+        initials = form.initials.data
+        body = form.body.data
+        error = None
+        lab_id_lst = [(lab['id']) for lab in labs]
+        lab_name_lst = [(lab['name']) for lab in labs]
+        lab_dict = {}
+        for key in lab_id_lst:
+            for value in lab_name_lst:
+                lab_dict[key] = value
+                break
+        full_id = lab_dict.get(int(lab_id)) + '-' + title + '-' + date.strftime('%Y%m%d') + '-' + comment + '-' + initials
+
+        if not title:
+            error = 'Title is required.'
+
+        if error is not None:
+            flash(error)
+        else:
+            db = get_db()
+            db.execute(
+                'INSERT INTO sample (title, date, comment, body, author_id, lab_id, initials, full_id, transfer_from)'
+                ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (title, date, comment, body, g.user['id'], lab_id, initials, full_id, id)
+            )
+            db.commit()
+            return redirect(url_for('sample.index'))
+
+    return render_template('sample/update.html', form=form, item=item)
+
+
 @bp.route('/<int:id>/delete', methods=('POST',))
 @login_required
 def delete(id):
     get_sample(id)
     db = get_db()
-    db.execute('DELETE FROM sample WHERE id = ?', (id,))
+    db.execute(
+        'UPDATE sample SET deleted = CURRENT_TIMESTAMP WHERE id = ?',
+        (id,))
     db.commit()
     return redirect(url_for('sample.index'))
 
@@ -178,7 +233,7 @@ def makelabels():
     items=db.execute(
             'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email,'
             ' l.name, s.initials, full_id FROM sample s JOIN user u ON s.author_id = u.id'
-            ' JOIN lab l ON s.lab_id = l.id ORDER BY s.created DESC'
+            ' JOIN lab l ON s.lab_id = l.id WHERE deleted IS NULL ORDER BY s.created DESC'
     ).fetchall()
     filename = makelabel(items)
     #upload_pdf(filename)

@@ -7,21 +7,22 @@ load_dotenv()
 
 
 def get_s3client():
-    bucketurl = os.getenv('BUCKETURL')
-    access_key = os.getenv('ACCESSKEYID'),
-    key_secret = os.getenv('ACCESS_KEY_SECRET')
+    url = os.getenv('URL')
+    access_key = os.getenv('ACCESS_KEY_ID')
+    key_secret = os.getenv('KEY_SECRET')
+
     s3 = boto3.client('s3',
       region_name="auto",
-      endpoint_url = bucketurl,
+      endpoint_url = url,
       aws_access_key_id = access_key,
       aws_secret_access_key = key_secret,
-      verify=False
        )
     return s3
 
-def upload_pdf(filename):
+def upload_pdf(data, filename):
+    bucket = os.getenv('BUCKET')
+    end_url = os.getenv('END_URL')
     s3 = get_s3client()
-    with open('20230210labels.pdf', 'rb') as data:
-        s3.upload_fileobj(data, os.getenv('BUCKET'), '20230210labels.pdf')
-        print('uploaded filename')
-    return('success')
+    s3.upload_fileobj(data, bucket, filename)
+    print('uploaded filename')
+    return(end_url + filename)

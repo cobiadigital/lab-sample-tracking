@@ -1,33 +1,43 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Posts{% endblock %}</h1>
-  {% if g.user %}
-    <a class="action" href="{{ url_for('sample.create') }}">New</a>
-  {% endif %}
+  <h1>{% block title %}Samples{% endblock %}</h1>
 {% endblock %}
 
 {% block content %}
   {% for item in items %}
     <article class="item">
-      <header>
-        <div>
-          <h1>{{ item['title'] }}</h1>
-          <div class="about">by {{ item['email'] }} on {{ item['created'].strftime('%Y-%m-%d') }}</div>
+    <div class="row">
+        <div class="col-sm-1">
+            <a href="{{ url_for('sample.single', id=item['id']) }}">{{ item['title'] }}</a>
         </div>
-        {% if g.user['id'] == item['author_id'] %}
-          <a class="action" href="{{ url_for('sample.update', id=item['id']) }}">Edit</a>
-        {% endif %}
-      </header>
-        <p>{{ item['full_id'] }} </p>
-      <p>{{ item['name'] }} {{ item['title'] }} - {{ item['comment'] }} <br />>
-          {{ item['date'].strftime("%Y%m%d") }} {{ item['initials'] }}</p>
-      <p class="body">{{ item['body'] }}</p>
+        <div class="col-sm-2">
+            {{ item['comment'] }}
+        </div>
+        <div class="col-sm-1">
+            {{ item['date'].strftime("%Y%m%d") }}
+        </div>
+        <div class="col-sm-1">
+            {{ item['initials'] }}
+        </div>
+        <div class="col-sm-2">
+            {{ item['email'] }} on {{ item['created'].strftime('%Y-%m-%d') }}
+        </div>
+        <div class="col-sm-2">
+            {{ item['body'] }}
+        </div>
+        <div class="col-sm-2">
+            {% if g.user['id'] == item['author_id'] %}
+                  <a class="action" href="{{ url_for('sample.update', id=item['id']) }}">Edit</a>
+            {% endif %}
+        </div>
+    </div>
     </article>
     {% if not loop.last %}
       <hr>
     {% endif %}
   {% endfor %}
+
   <form action="{{ url_for('sample.makelabels') }}" method="post">
     <input class="danger" type="submit" value="Make Labels" onclick="return confirm('Are you sure?');">
   </form>{% endblock %}
