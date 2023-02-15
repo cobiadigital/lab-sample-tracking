@@ -18,9 +18,68 @@
       <p>{{ item['name'] }} {{ item['title'] }} - {{ item['comment'] }} <br />
           {{ item['date'].strftime("%Y%m%d") }} {{ item['initials'] }}</p>
       <p class="body">{{ item['body'] }}</p>
-    </article>
-    <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary">Duplicate</a>
+
+  <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary">Duplicate</a>
 
   <form action="{{ url_for('sample.delete', id=item['id']) }}" method="post">
     <input class="danger" type="submit" value="delete" onclick="return confirm('Are you sure?');">
-  </form>{% endblock %}
+  </form>
+
+    <form method="post" class="mx-auto narrow_form">
+	{{ form.csrf_token }}
+    <div class="form-group">
+        {{ form.body.label }}
+        {{ form.body(class_="form-control", size=32) }}
+    </div>
+        <div class="row">
+            <div class="col">
+                <div class="form-group" >
+                    {{ form.lab.label }}
+                    {{ form.lab(class_="form-control") }}
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="form-group">
+                    {{ form.date.label }}
+                    {{ form.date(class_="form-control", size=32) }}
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    {{ form.initials.label }}
+                    {{ form.initials(class_="form-control", size=32) }}
+                </div>
+            </div>
+    </div>
+    {{ form.submit(class_="form-control") }}
+</form>
+
+    {% if notes is not none %}
+        {% for note in notes %}
+    <div class="card mx-auto mb-3 pt-2" style="max-width: 30rem;">
+    <div class="">
+     <p>{{ note['note_body'] }}</p>
+    </div>
+    <div class="card-footer">
+        <div class="row">
+            <div class="col">
+                {{ note['name'] }}
+            </div>
+            <div class="col-6">
+                {{ note['note_date'] }}
+            </div>
+            <div class="col">
+                {{ note['note_initials'] }}
+            </div>
+        </div>
+    </div>
+</div>
+        {% endfor %}
+
+    {% endif %}
+
+    </article>
+
+
+
+{% endblock %}

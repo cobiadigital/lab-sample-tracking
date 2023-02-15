@@ -1,15 +1,27 @@
-{% extends 'base.html' %}
+ {% extends 'base.html' %}
 
 {% block header %}
   <h1>{% block title %}Samples{% endblock %}</h1>
 {% endblock %}
-
 {% block content %}
 
+    <h3>
+  Search Contacts
+  <span class="htmx-indicator">
+    <img src="{{ url_for('static', filename='bars.svg') }}" /> Searching...
+   </span>
+</h3>
+<input class="form-control" type="search"
+       name="search" placeholder="Begin Typing To Search Users..."
+       hx-post="/search"
+       hx-trigger="keyup changed delay:500ms, search"
+       hx-target="#search-results"
+       hx-indicator=".htmx-indicator">
+
   {% for item in items %}
-    <article class="item">
+ <article class="item">
     <div class="row">
-        <div class="col-sm-1">
+        <div class="col-sm-1">`
             <a href="{{ url_for('sample.single', id=item['id']) }}">{{ item['title'] }}</a>
         </div>
         <div class="col-sm-1">
@@ -41,8 +53,4 @@
     {% if not loop.last %}
       <hr>
     {% endif %}
-  {% endfor %}
-
-  <form action="{{ url_for('sample.makelabels') }}" method="post">
-    <input class="danger" type="submit" value="Make Labels" onclick="return confirm('Are you sure?');">
-  </form>{% endblock %}
+{% endblock %}

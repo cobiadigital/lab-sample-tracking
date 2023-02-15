@@ -1,15 +1,6 @@
-{% extends 'base.html' %}
-
-{% block header %}
-  <h1>{% block title %}Samples{% endblock %}</h1>
-{% endblock %}
-
-{% block content %}
-
-  {% for item in items %}
-    <article class="item">
+ <article class="item">
     <div class="row">
-        <div class="col-sm-1">
+        <div class="col-sm-1">`
             <a href="{{ url_for('sample.single', id=item['id']) }}">{{ item['title'] }}</a>
         </div>
         <div class="col-sm-1">
@@ -41,8 +32,3 @@
     {% if not loop.last %}
       <hr>
     {% endif %}
-  {% endfor %}
-
-  <form action="{{ url_for('sample.makelabels') }}" method="post">
-    <input class="danger" type="submit" value="Make Labels" onclick="return confirm('Are you sure?');">
-  </form>{% endblock %}
