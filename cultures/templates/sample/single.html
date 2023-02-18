@@ -18,13 +18,20 @@
       <p>{{ item['name'] }} {{ item['title'] }} - {{ item['comment'] }} <br />
           {{ item['date'].strftime("%Y%m%d") }} {{ item['initials'] }}</p>
       <p class="body">{{ item['body'] }}</p>
+    <div class="row">
+        <div class="col-4">
+  <a href="{{ url_for('sample.update', id=item['id'])}}" class="btn btn-secondary">Update</a>
+</div>
+<div class="col-4">
 
   <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary">Duplicate</a>
-
+</div>
+<div class="col-4">
   <form action="{{ url_for('sample.delete', id=item['id']) }}" method="post">
     <input class="danger" type="submit" value="delete" onclick="return confirm('Are you sure?');">
   </form>
-
+</div>
+</div>
     <form method="post" class="mx-auto narrow_form">
 	{{ form.csrf_token }}
     <div class="form-group">
@@ -38,6 +45,7 @@
                     {{ form.lab(class_="form-control") }}
                 </div>
             </div>
+
             <div class="col-6">
                 <div class="form-group">
                     {{ form.date.label }}

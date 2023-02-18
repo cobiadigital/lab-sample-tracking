@@ -46,72 +46,71 @@ def index():
     db = get_db()
     items = db.execute(
         'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email, '
-        ' l.name, s.initials, full_id, transfer_from, note_body, note_initials, note_date, note_lab_id '
+        ' l.name, s.initials, full_id, transfer_from '
         'FROM sample s  JOIN user u ON s.author_id = u.id '
         'JOIN lab l ON s.lab_id = l.id '
-        'JOIN( SELECT note_body, note_date, note_lab_id, sample_id, note_initials  '
-        '    from note ORDER BY note_date DESC LIMIT 1 '
-        ' ) n  ON n.sample_id = s.id WHERE deleted IS NULL ORDER BY s.created DESC'
+        # 'JOIN( SELECT note_body, note_date, note_lab_id, sample_id, note_initials  '
+        # '    from note ORDER BY note_date DESC LIMIT 1 '
+        # ' ) n  ON n.sample_id = s.id '
+        'WHERE deleted IS NULL ORDER BY s.created DESC'
     ).fetchall()
     return render_template('sample/index.html', items=items)
-
-@bp.route('/htmx/')
-def index2():
-    db = get_db()
-    items = db.execute(
-        'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email, '
-        ' l.name, s.initials, full_id, transfer_from, note_body, note_initials, note_date, note_lab_id '
-        'FROM sample s  JOIN user u ON s.author_id = u.id '
-        'JOIN lab l ON s.lab_id = l.id '
-        'JOIN( SELECT note_body, note_date, note_lab_id, sample_id, note_initials  '
-        '    from note ORDER BY note_date DESC LIMIT 1 '
-        ' ) n  ON n.sample_id = s.id WHERE deleted IS NULL ORDER BY s.created DESC'
-    ).fetchall()
-    return render_template('sample/index2.html', items=items)
-
-def searching(self, word):
-    if (word is None):
-        return False
-    return word.lower() in self.title.lower()
-
-@app.route('/results')
-def search_results(search):
-    results = []
-    search_string = search.data['search']
-    if search.data['search'] == '':
-        qry = db_session.query(Album)
-        results = qry.all()
-    if not results:
-        flash('No results found!')
-        return redirect('/')
-    else:
-        # display results
-        return render_template('results.html', results=results)
-
-@bp.route('/search', methods=('POST'))
-def search():
-    db = get_db()
-    items = db.execute(
-        'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email, '
-        ' l.name, s.initials, full_id, transfer_from, note_body, note_initials, note_date, note_lab_id '
-        'FROM sample s  JOIN user u ON s.author_id = u.id '
-        'JOIN lab l ON s.lab_id = l.id '
-        'JOIN( SELECT note_body, note_date, note_lab_id, sample_id, note_initials  '
-        '    from note ORDER BY note_date DESC LIMIT 1 '
-        ' ) n  ON n.sample_id = s.id WHERE deleted IS NULL ORDER BY s.created DESC'
-    ).fetchall()
-    searchWord = request.form.get('search', None)
-    matchsample = [item in item in items if searching(searchWord)]
-    return render_template('partials/results.html', items=matchsample)
-
+#
+# @bp.route('/htmx/')
+# def index2():
+#     db = get_db()
+#     items = db.execute(
+#         'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email, '
+#         ' l.name, s.initials, full_id, transfer_from, note_body, note_initials, note_date, note_lab_id '
+#         'FROM sample s  JOIN user u ON s.author_id = u.id '
+#         'JOIN lab l ON s.lab_id = l.id '
+#         'JOIN( SELECT note_body, note_date, note_lab_id, sample_id, note_initials  '
+#         '    from note ORDER BY note_date DESC LIMIT 1 '
+#         ' ) n  ON n.sample_id = s.id WHERE deleted IS NULL ORDER BY s.created DESC'
+#     ).fetchall()
+#     return render_template('sample/index2.html', items=items)
+#
+# def searching(self, word):
+#     if (word is None):
+#         return False
+#     return word.lower() in self.title.lower()
+#
+# @app.route('/results')
+# def search_results(search):
+#     results = []
+#     search_string = search.data['search']
+#     if search.data['search'] == '':
+#         qry = db_session.query(Album)
+#         results = qry.all()
+#     if not results:
+#         flash('No results found!')
+#         return redirect('/')
+#     else:
+#         # display results
+#         return render_template('results.html', results=results)
+#
+# @bp.route('/search', methods=('POST'))
+# def search():
+#     db = get_db()
+#     items = db.execute(
+#         'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email, '
+#         ' l.name, s.initials, full_id, transfer_from, note_body, note_initials, note_date, note_lab_id '
+#         'FROM sample s  JOIN user u ON s.author_id = u.id '
+#         'JOIN lab l ON s.lab_id = l.id '
+#         'JOIN( SELECT note_body, note_date, note_lab_id, sample_id, note_initials  '
+#         '    from note ORDER BY note_date DESC LIMIT 1 '
+#         ' ) n  ON n.sample_id = s.id WHERE deleted IS NULL ORDER BY s.created DESC'
+#     ).fetchall()
+#     searchWord = request.form.get('search', None)
+#     matchsample = [item in item in items if searching(searchWord)]
+#     return render_template('partials/results.html', items=matchsample)
+#
 
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
 def create():
     form = CreateForm()
     lab_dict = get_labs()
-    print(lab_dict)
-    print(type(lab_dict))
 
     # for lab in labs:
     #     lab_dict[lab['id']].append(name)
@@ -129,7 +128,7 @@ def create():
         lab_id = form.lab.data
         initials = form.initials.data
         body = form.body.data
-        full_id = labs.get(int(lab_id)) + '-' + title + '-'  + date.strftime('%Y%m%d') + '-' + comment + '-' + initials
+        full_id = lab_dict.get(int(lab_id)) + '-' + title + '-'  + date.strftime('%Y%m%d') + '-' + comment + '-' + initials
 
 
         error = None
@@ -172,7 +171,7 @@ def single(id):
     form = NoteForm()
     item = get_sample(id)
     notes = get_db().execute(
-        'SELECT note_body, l.name, note_date, note_initials FROM note n JOIN lab l on n.note_lab_id = l.id WHERE sample_id = ? ORDER BY note_date DESC',
+        'SELECT body as note_body, l.name, n.date as note_date, n.initials as note_initials FROM note n JOIN lab l on n.lab_id = l.id WHERE sample_id = ? ORDER BY n.date DESC',
         (id,)
     ).fetchall()
     lab_dict = get_labs()
@@ -189,7 +188,7 @@ def single(id):
         initials = form.initials.data
         db = get_db()
         db.execute(
-            'INSERT INTO note (note_date, note_body, sample_id, author_id, lab_id, note_initials)'
+            'INSERT INTO note (date, body, sample_id, author_id, lab_id, initials)'
             ' VALUES (?, ?, ?, ?, ?, ?)',
             (date, body, id, g.user['id'], lab_id, initials,)
         )
@@ -229,11 +228,14 @@ def update(id):
         if error is not None:
             flash(error)
         else:
+            full_id = lab_dict.get(int(lab_id)) + '-' + title + '-' + date.strftime(
+                '%Y%m%d') + '-' + comment + '-' + initials
+
             db = get_db()
             db.execute(
-                'UPDATE sample SET title = ?, date = ?, comment = ?, lab_id = ?, initials = ?, body = ?'
+                'UPDATE sample SET title = ?, date = ?, comment = ?, lab_id = ?, initials = ?, body = ?, full_id = ?'
                 ' WHERE id = ?',
-                (title, date, comment, lab_id, initials, body, id)
+                (title, date, comment, lab_id, initials, body, full_id, id)
             )
             db.commit()
             return redirect(url_for('sample.index'))

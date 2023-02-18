@@ -28,8 +28,7 @@
             {{ item['body'] }}
         </div>
             <div class="col-sm-2">
-            {{ item['note_body'] }}<br>
-             {{ item['note_lab_id'] }}{{ item['note_date']}} {{ item['note_initials'] }}
+            {{ item['full_id'] }}
         </div>
         <div class="col-sm-1">
             {% if g.user['id'] == item['author_id'] %}
