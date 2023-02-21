@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 import io
 from flask import current_app
-from cultures.upload import upload_pdf
+from cultures.upload import upload_file
 
 
 def makelabel(items):
@@ -19,6 +19,6 @@ def makelabel(items):
     print(type(bytes_pdf))
     label_pdf = io.BytesIO(bytes_pdf)
     print(type(label_pdf))
-    final_url = upload_pdf(label_pdf, filename)
+    final_url = upload_file(label_pdf, filename)
 
     return final_url

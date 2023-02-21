@@ -3,7 +3,15 @@ from flask import (
 )
 from werkzeug.exceptions import abort
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SubmitField, SelectField, DateTimeField
+from wtforms import StringField, TextAreaField, SubmitField, SelectField, DateTimeField, BooleanField
+from flask_wtf.file import FileField, FileRequired, FileAllowed
+from werkzeug.utils import secure_filename
+from flask import current_app
+
+
+import os
+
+
 from wtforms.validators import DataRequired
 
 from cultures.auth import login_required
@@ -12,18 +20,19 @@ from cultures.db import get_db
 from cultures.make_labels import makelabel
 
 from datetime import datetime
-from cultures.upload import upload_pdf
+from cultures.upload import upload_file
 
 
 bp = Blueprint('sample', __name__)
 
 class CreateForm(FlaskForm):
-    title = StringField('title')
-    date = DateTimeField('date')
-    comment = StringField('comment')
-    body = TextAreaField('body')
-    lab = SelectField('lab', choices=[], validate_choice=True)
-    initials = StringField('initials')
+    title = StringField('Title')
+    date = DateTimeField('Date')
+    comment = StringField('Comment')
+    body = TextAreaField('Body')
+    lab = SelectField('Lab', choices=[], validate_choice=True)
+    initials = StringField('Initials')
+    makeprimary = BooleanField('Make Primary')
     submit = SubmitField('Submit')
 
 class NoteForm(FlaskForm):
@@ -32,6 +41,10 @@ class NoteForm(FlaskForm):
     lab = SelectField('Lab', choices=[], validate_choice=True)
     initials = StringField('Initials')
     submit = SubmitField('Submit')
+
+class PhotoForm(FlaskForm):
+    photo = FileField(validators=[FileRequired()])
+    lab = SelectField('Lab', choices=[], validate_choice=True)
 
 def get_labs():
     db = get_db()
@@ -45,7 +58,7 @@ def get_labs():
 def index():
     db = get_db()
     items = db.execute(
-        'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email, '
+        'SELECT s.id, isprimary, s.lab_id, title, comment, date, body, s.created, author_id, email, '
         ' l.name, s.initials, full_id, transfer_from '
         'FROM sample s  JOIN user u ON s.author_id = u.id '
         'JOIN lab l ON s.lab_id = l.id '
@@ -106,6 +119,7 @@ def index():
 #     return render_template('partials/results.html', items=matchsample)
 #
 
+
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
 def create():
@@ -128,6 +142,7 @@ def create():
         lab_id = form.lab.data
         initials = form.initials.data
         body = form.body.data
+        isprimary = form.makeprimary.data
         full_id = lab_dict.get(int(lab_id)) + '-' + title + '-'  + date.strftime('%Y%m%d') + '-' + comment + '-' + initials
 
 
@@ -141,9 +156,9 @@ def create():
         else:
             db = get_db()
             db.execute(
-                'INSERT INTO sample (title, date, comment, body, author_id, lab_id, initials, full_id)'
-                ' VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                (title, date, comment, body, g.user['id'], lab_id, initials, full_id)
+                'INSERT INTO sample (title, isprimary, date, comment, body, author_id, lab_id, initials, full_id)'
+                ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (title, isprimary, date, comment, body, g.user['id'], lab_id, initials, full_id)
             )
             db.commit()
             return redirect(url_for('sample.index'))
@@ -152,8 +167,8 @@ def create():
 
 def get_sample(id, check_author=True):
     item = get_db().execute(
-        'SELECT s.id, title, date, comment, body, s.created, name, s.initials, s.lab_id, '
-        'email, full_id, transfer_from FROM sample s JOIN user u ON s.author_id = u.id '
+        'SELECT s.id, title, isprimary, date, comment, body, s.created, name, s.initials, s.lab_id, '
+        'email, full_id, transfer_from, isprimary FROM sample s JOIN user u ON s.author_id = u.id '
         ' JOIN lab l ON s.lab_id = l.id WHERE s.id = ? ',
         (id,)
     ).fetchone()
@@ -176,6 +191,8 @@ def single(id):
     ).fetchall()
     lab_dict = get_labs()
     form.lab.choices = [(lid, lval) for lid, lval in lab_dict.items()]
+    photoform = PhotoForm()
+
     if request.method == 'GET':
         form.lab.data = (g.user['lab_id'], g.user['name'])
         form.date.data = datetime.now()
@@ -195,7 +212,7 @@ def single(id):
         db.commit()
         return redirect(url_for('sample.single', id=id))
 
-    return render_template('sample/single.html', item=item, notes=notes, form=form)
+    return render_template('sample/single.html', item=item, notes=notes, form=form, photoform=photoform)
 
 
 @bp.route('/<int:id>/update', methods=('GET', 'POST'))
@@ -256,6 +273,7 @@ def duplicate(id):
         form.lab.data = (g.user['lab_id'], g.user['name'])
         form.initials.data = g.user['initials']
         form.body.data = item['body']
+        form.makeprimary.data = True
 
     if request.method == 'POST':
         title = form.title.data
@@ -264,6 +282,8 @@ def duplicate(id):
         lab_id = form.lab.data
         initials = form.initials.data
         body = form.body.data
+        makeprimary = form.makeprimary.data
+
         error = None
         full_id = lab_dict.get(int(lab_id)) + '-' + title + '-' + date.strftime('%Y%m%d') + '-' + comment + '-' + initials
 
@@ -272,17 +292,39 @@ def duplicate(id):
 
         if error is not None:
             flash(error)
-        else:
-            db = get_db()
-            db.execute(
-                'INSERT INTO sample (title, date, comment, body, author_id, lab_id, initials, full_id, transfer_from)'
-                ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                (title, date, comment, body, g.user['id'], lab_id, initials, full_id, id)
-            )
-            db.commit()
-            return redirect(url_for('sample.index'))
 
-    return render_template('sample/update.html', form=form, item=item)
+        else:
+            if makeprimary == True:
+                makeprimaryval = 'Primary'
+                db = get_db()
+                db.execute(
+                    'UPDATE sample SET isprimary = "Backup" WHERE id = ?',
+                    (id,)
+                )
+                db.execute(
+                    'UPDATE sample SET isprimary = "Unneeded" WHERE id = ?',
+                    (item['transfer_from'],)
+                )
+                db.execute(
+                    'INSERT INTO sample (title, date, comment, body, author_id, lab_id, initials, full_id, '
+                    ' transfer_from, isprimary)'
+                    ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    (title, date, comment, body, g.user['id'], lab_id, initials, full_id, id, makeprimaryval)
+                )
+                db.commit()
+                return redirect(url_for('sample.index'))
+
+            else:
+                db = get_db()
+                db.execute(
+                    'INSERT INTO sample (title, date, comment, body, author_id, lab_id, initials, full_id, transfer_from)'
+                    ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    (title, date, comment, body, g.user['id'], lab_id, initials, full_id, id,)
+                )
+                db.commit()
+                return redirect(url_for('sample.index'))
+
+    return render_template('sample/duplicate.html', form=form, item=item)
 
 
 @bp.route('/<int:id>/delete', methods=('POST',))
@@ -295,6 +337,35 @@ def delete(id):
         (id,))
     db.commit()
     return redirect(url_for('sample.index'))
+
+@bp.route('/<int:id>/makeprimary?transfer_from<int:transfer_from>', methods=('POST',))
+@login_required
+def makeprimary(id, transfer_from):
+
+    db = get_db()
+    db.execute(
+        'UPDATE sample SET isprimary = "Primary" WHERE id = ?',
+        (id,)
+    )
+    if transfer_from != 0:
+        db.execute(
+            'UPDATE sample SET isprimary = "Backup" WHERE id = ?',
+            (transfer_from,)
+        )
+    db.commit()
+    return redirect(url_for('sample.single', id=id))
+
+@bp.route('/<int:id>/makebackup', methods=('POST',))
+@login_required
+def makebackup(id):
+    db = get_db()
+    db.execute(
+        'UPDATE sample SET isprimary = "backup" WHERE id = ?',
+        (id,)
+    )
+    db.commit()
+    return redirect(url_for('sample.single', id=id))
+
 
 @bp.route('/makelabels', methods=('POST',))
 @login_required
@@ -309,3 +380,25 @@ def makelabels():
     #upload_pdf(filename)
     print(filename)
     return redirect(url_for('sample.index'))
+
+@bp.route('/<int:id>/upload', methods=['POST',])
+def upload(id):
+    form = PhotoForm()
+    lab_dict = get_labs()
+    form.lab.choices = [(lid, lval) for lid, lval in lab_dict.items()]
+
+    if form.validate_on_submit():
+        user_id = g.user['id']
+        file = form.photo.data
+        lab_id = form.lab.data
+        filename = secure_filename(file.filename)
+        file_url = upload_file(file, filename)
+        db = get_db()
+        db.execute(
+            'INSERT INTO media (filename, file_url, lab_id, sample_id, user_id)'
+            ' VALUES (?, ?, ?, ?, ?)',
+            (filename, file_url, lab_id, id, user_id)
+        )
+        db.commit()
+        print('success')
+        return redirect(url_for('sample.index'))

@@ -2,10 +2,15 @@
 
 
 {% block content %}
-    <article class="item">
+    <article class="item narrow_form mx-auto">
       <header>
         <div>
-          <h1>{{ item['title'] }}</h1>
+          <h4>{{ item['title'] }}
+              {%  if item['isprimary'] == 'Primary' %} Primary{% endif %}
+              {% if item['isprimary'] == 'Backup' %} Backup{% endif %}
+               {% if item['isprimary'] == 'Unneeded' %} Unneeded{% endif %}
+
+          </h4>
           <div class="about">by {{ item['email'] }} on {{ item['created'].strftime('%Y-%m-%d') }}</div>
              {% if item['transfer_from'] is not none %}
                  <div class="about"><a href="{{ url_for('sample.single', id=item['transfer_from']) }}">{{ item['transfer_from'] }}</a></div>
@@ -19,19 +24,47 @@
           {{ item['date'].strftime("%Y%m%d") }} {{ item['initials'] }}</p>
       <p class="body">{{ item['body'] }}</p>
     <div class="row">
-        <div class="col-4">
+        <div class="col-3">
   <a href="{{ url_for('sample.update', id=item['id'])}}" class="btn btn-secondary">Update</a>
 </div>
-<div class="col-4">
+<div class="col-3">
 
   <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary">Duplicate</a>
 </div>
-<div class="col-4">
+<div class="col-3">
+    {% if item['isprimary'] != 'primary' %}
+      {% if item['transfer_from'] is not none %}
+        <form action="{{ url_for('sample.makeprimary', id=item['id'], transfer_from=item['transfer_from']) }}" method="post">
+      {% else %}
+      <form action="{{ url_for('sample.makeprimary', id=item['id'], transfer_from=0)}}" method="post">
+      {% endif %}
+
+        <input class="danger" type="submit" value="Make Primary" onclick="return confirm('Setting Primary');">
+      </form>
+    {% else %}
+      <form action="{{ url_for('sample.makebackup', id=item['id'])}}" method="post">
+    <input class="danger" type="submit" value="Make Backup" onclick="return confirm('Making Backup');">
+  </form>
+    {% endif %}
+</div>
+        <div class="col-3">
   <form action="{{ url_for('sample.delete', id=item['id']) }}" method="post">
     <input class="danger" type="submit" value="delete" onclick="return confirm('Are you sure?');">
   </form>
 </div>
 </div>
+    <form action="{{ url_for('sample.upload', id=item['id']) }}" method="POST" enctype="multipart/form-data">
+      {{ photoform.hidden_tag() }}
+     {{ photoform.photo }}
+     {% for error in photoform.photo.errors %}
+         <span style="color: red;">{{ error }}</span>
+     {% endfor %}
+        <div class="form-group" >
+        {{ form.lab.label }}
+        {{ form.lab(class_="form-control") }}
+    </div>
+     {{ form.submit }}
+    </form>
     <form method="post" class="mx-auto narrow_form">
 	{{ form.csrf_token }}
     <div class="form-group">

@@ -19,7 +19,7 @@ def get_s3client():
        )
     return s3
 
-def upload_pdf(data, filename):
+def upload_file(data, filename):
     bucket = os.getenv('BUCKET')
     end_url = os.getenv('END_URL')
     s3 = get_s3client()

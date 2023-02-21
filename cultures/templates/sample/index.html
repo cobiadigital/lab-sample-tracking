@@ -10,7 +10,9 @@
     <article class="item">
     <div class="row">
         <div class="col-sm-1">
-            <a href="{{ url_for('sample.single', id=item['id']) }}">{{ item['title'] }}</a>
+            <a href="{{ url_for('sample.single', id=item['id']) }}">{{ item['title'] }}
+              {%  if item['isprimary'] == 'primary' %} Primary{% endif %}
+              {% if item['isprimary'] == 'backup' %} Backup{% endif %}</a>
         </div>
         <div class="col-sm-1">
             {{ item['comment'] }}
