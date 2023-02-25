@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 
 
+
 {% block content %}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+
     <article class="item narrow_form mx-auto">
       <header>
         <div>
@@ -65,6 +68,45 @@
     </div>
      {{ form.submit }}
     </form>
+<hr />
+
+
+
+
+        <div class="mb-3">
+          <label for="formFile" class="form-label">Upload Image</label>
+          <input class="form-control" type="file" value="dataValue" id="formFile">
+        </div>
+            <div class="col-auto">
+                <button onclick="myFunction()" class="btn btn-primary mb-3">Submit</button>
+            </div>
+                <script>
+function myFunction(){
+var dataValue = $("#keyName").val();
+$.ajax({
+            type : 'POST',
+            //remove the .php from results.php.php
+            url : "https://api.cloudflare.com/client/v4/accounts/245302718047bba4dfecc0817e7c92b1/images/v2/direct_upload",
+            //Add the request header
+            headers : {
+                 Authorization: "Bearer 462XIN0OdrHu6k3MkbYoNu5mACi3GJkRW6OQtT7B",
+                 "Content-Type" : "application/",
+            },
+            //Add form data
+            data : {formFile : dataValue},
+            success : function(response) {
+                console.log(response);
+            },
+            error : function(xhr, status, error) {
+                var err = eval("(" + xhr.responseText + ")");
+                console.log(err);
+            }
+        }); //End of Ajax
+}   // End of myFunction
+    </script>
+
+    <hr />
+
     <form method="post" class="mx-auto narrow_form">
 	{{ form.csrf_token }}
     <div class="form-group">

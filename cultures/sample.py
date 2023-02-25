@@ -7,6 +7,11 @@ from wtforms import StringField, TextAreaField, SubmitField, SelectField, DateTi
 from flask_wtf.file import FileField, FileRequired, FileAllowed
 from werkzeug.utils import secure_filename
 from flask import current_app
+from dotenv import load_dotenv
+import requests
+
+load_dotenv()
+
 
 
 import os
@@ -192,6 +197,9 @@ def single(id):
     lab_dict = get_labs()
     form.lab.choices = [(lid, lval) for lid, lval in lab_dict.items()]
     photoform = PhotoForm()
+    #account_identifier = os.getenv('IMAGE_API')
+    account_identifier = os.getenv('ACCOUNT_ID')
+
 
     if request.method == 'GET':
         form.lab.data = (g.user['lab_id'], g.user['name'])
@@ -212,7 +220,8 @@ def single(id):
         db.commit()
         return redirect(url_for('sample.single', id=id))
 
-    return render_template('sample/single.html', item=item, notes=notes, form=form, photoform=photoform)
+    return render_template('sample/single.html', item=item, notes=notes, form=form, photoform=photoform,
+                           account_identifier=account_identifier)
 
 
 @bp.route('/<int:id>/update', methods=('GET', 'POST'))
@@ -392,7 +401,39 @@ def upload(id):
         file = form.photo.data
         lab_id = form.lab.data
         filename = secure_filename(file.filename)
+        #file_url = 'test url'
         file_url = upload_file(file, filename)
+        url = f"https://api.cloudflare.com/client/v4/accounts/{os.getenv('ACCOUNT_ID')}/images/v2/direct_upload"
+
+        payload = '''
+        -----011000010111000001101001\r\nContent-Disposition: form-data; name="id"\r\n\r\n\r\n
+        -----011000010111000001101001\r\nContent-Disposition: form-data; name=\"metadata\"\r\n\r\n\r\n
+        -----011000010111000001101001\r\nContent-Disposition: form-data; name=\"requireSignedURLs\"\r\n\r\n\r\n
+        -----011000010111000001101001--\r\n\r\n
+        '''
+        headers = {
+            "Content-Type": "multipart/form-data; boundary=---011000010111000001101001",
+            'Authorization': f'Bearer {os.getenv("IMAGE_API")}'
+        }
+
+        response = requests.request("POST", url, data=payload, headers=headers)
+
+        print(response.text)
+        # url = f"https://api.cloudflare.com/client/v4/accounts/{os.getenv('ACCOUNT_ID')}/images/v1"
+        #
+        # payload = f'-----011000010111000001101001\r\nContent-Disposition: form-data; name="metadata"\r\n\r\n\r\n-----011000010111000001101001\r\nContent-Disposition: form-data; name="requireSignedURLs"\r\n\r\n\r\n-----011000010111000001101001\r\nContent-Disposition: form-data; name="url"\r\n\r\n["{file_url}"]\r\n-----011000010111000001101001--\r\n\r\n'
+        # headers = {
+        #     "Content-Type": "multipart/form-data; boundary=---011000010111000001101001",
+        #     'Authorization': f'Bearer {os.getenv("IMAGE_API")}'}
+        #
+        # response = requests.request("POST", url, data=payload, headers=headers)
+        #
+        # print(response.text)
+        # headers = {f'Content-type': 'multipart/form-datamultipart/form-data;boundary=9f74e4d3067e4ce482bdc9e311b58d2d',
+        #            'File': f'@/{filename}', 'Authorization': f'Bearer {os.getenv("IMAGE_API")}'}
+        # api_url = f'https://api.cloudflare.com/client/v4/accounts/{os.getenv("ACCOUNT_ID")}/images/v2/direct_upload'
+        # r = requests.post(api_url, data=file, headers=headers)
+        # print(r.content)
         db = get_db()
         db.execute(
             'INSERT INTO media (filename, file_url, lab_id, sample_id, user_id)'
