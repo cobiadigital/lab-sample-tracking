@@ -38,6 +38,35 @@ curl -X POST \
   -F file=@./<YOUR_IMAGE.IMG>
 
 
+import requests
+
+url = "https://api.cloudflare.com/client/v4/accounts/245302718047bba4dfecc0817e7c92b1/images/v1"
+
+payload = '-----011000010111000001101001\r\nContent-Disposition: form-data; name="metadata"\r\n\r\n\r\n-----011000010111000001101001\r\nContent-Disposition: form-data; name="requireSignedURLs"\r\n\r\n\r\n-----011000010111000001101001\r\nContent-Disposition: form-data; name="url"\r\n\r\n["https://media.ecotoxicologylab.com/bahud16_1219.jpg"]\r\n-----011000010111000001101001--\r\n\r\n'
+headers = {
+    "Content-Type": "multipart/form-data; boundary=---011000010111000001101001",
+    "Authorization": "Bearer 0OvtGq80fSxAkZ6Ruh4BWwsL6D2oEEgc"
+}
+
+response = requests.request("POST", url, data=payload, headers=headers)
+
+print(response.text)
+
+
+
+import requests
+
+headers = {
+    'Authorization': 'Bearer 462XIN0OdrHu6k3MkbYoNu5mACi3GJkRW6OQtT7B',
+}
+
+files = {
+    'file': open('./bahud22.jpg', 'rb'),
+}
+response = requests.post('https://api.cloudflare.com/client/v4/accounts/245302718047bba4dfecc0817e7c92b1/images/v1', headers=headers, files=files)
+
+
+
 import ssl
 import certifi
 from urllib.request import urlopen

@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 
-
+{% block header %}
+          <form action="{{ url_for('sample.index') }}" method="post" class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3 d-inline-block" role="search">
+          {{ search_form.query(class_="form-control form-control", size=22) }}
+        </form>
+{% endblock %}
 
 {% block content %}
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
@@ -8,6 +12,42 @@
     <article class="item narrow_form mx-auto">
       <header>
         <div>
+        {% if item['file_url'] is not none %}
+            <img src="{{ item['file_url'] }}" class="img-fluid">
+        {% endif %}
+  <div class="accordion accordion-flush" id="accordionImage">
+  <div class="accordion-item bg-light">
+    <h2 class="accordion-header" id="accordion-headerOne">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+              data-bs-target="#accordion-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+          Add/Change Image
+      </button>
+    </h2>
+    <div id="accordion-collapseOne" class="accordion-collapse collapse mb-5" aria-labelledby="accordion-headerOne" data-bs-parent="#accordionImage">
+
+    <form action="{{ url_for('sample.upload', id=item['id']) }}" method="POST" enctype="multipart/form-data">
+      {{ photoform.hidden_tag() }}
+    <div class="my-3">
+     {{ photoform.photo (class_="form-control")}}
+     {% for error in photoform.photo.errors %}
+         <span style="color: red;">{{ error }}</span>
+     {% endfor %}
+    </div>
+{#    <div class="input-group">#}
+        <div class="row mb-3">
+            <div class="col-6">
+                        {{ photoform.lab.label }}
+            </div>
+            <div class="col-6">
+                        {{ photoform.lab(class_="form-control") }}
+            </div>
+        </div>
+{#    </div>#}
+            {{ photoform.submit(class_="btn btn-primary mb-3") }}
+    </form>
+        </div>
+  </div>
+    </div>
           <h4>{{ item['title'] }}
               {%  if item['isprimary'] == 'Primary' %} Primary{% endif %}
               {% if item['isprimary'] == 'Backup' %} Backup{% endif %}
@@ -26,15 +66,15 @@
       <p>{{ item['name'] }} {{ item['title'] }} - {{ item['comment'] }} <br />
           {{ item['date'].strftime("%Y%m%d") }} {{ item['initials'] }}</p>
       <p class="body">{{ item['body'] }}</p>
-    <div class="row">
-        <div class="col-3">
-  <a href="{{ url_for('sample.update', id=item['id'])}}" class="btn btn-secondary">Update</a>
+    <div class="row justify-content-center">
+        <div class="col">
+  <a href="{{ url_for('sample.update', id=item['id'])}}" class="btn btn-secondary btn-sm">Update</a>
 </div>
-<div class="col-3">
+<div class="col">
 
-  <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary">Duplicate</a>
+  <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary btn-sm">Duplicate</a>
 </div>
-<div class="col-3">
+<div class="col">
     {% if item['isprimary'] != 'primary' %}
       {% if item['transfer_from'] is not none %}
         <form action="{{ url_for('sample.makeprimary', id=item['id'], transfer_from=item['transfer_from']) }}" method="post">
@@ -42,70 +82,23 @@
       <form action="{{ url_for('sample.makeprimary', id=item['id'], transfer_from=0)}}" method="post">
       {% endif %}
 
-        <input class="danger" type="submit" value="Make Primary" onclick="return confirm('Setting Primary');">
+        <input class="btn btn-secondary btn-sm" type="submit" value="Make Primary" onclick="return confirm('Setting Primary');">
       </form>
     {% else %}
       <form action="{{ url_for('sample.makebackup', id=item['id'])}}" method="post">
-    <input class="danger" type="submit" value="Make Backup" onclick="return confirm('Making Backup');">
+    <input class="btn btn-secondary btn-sm" type="submit" value="Make Backup" onclick="return confirm('Making Backup');">
   </form>
     {% endif %}
 </div>
-        <div class="col-3">
+        <div class="col">
   <form action="{{ url_for('sample.delete', id=item['id']) }}" method="post">
-    <input class="danger" type="submit" value="delete" onclick="return confirm('Are you sure?');">
+    <input class="btn btn-secondary btn-sm" type="submit" value="delete" onclick="return confirm('Are you sure?');">
   </form>
 </div>
 </div>
-    <form action="{{ url_for('sample.upload', id=item['id']) }}" method="POST" enctype="multipart/form-data">
-      {{ photoform.hidden_tag() }}
-     {{ photoform.photo }}
-     {% for error in photoform.photo.errors %}
-         <span style="color: red;">{{ error }}</span>
-     {% endfor %}
-        <div class="form-group" >
-        {{ form.lab.label }}
-        {{ form.lab(class_="form-control") }}
-    </div>
-     {{ form.submit }}
-    </form>
+
+
 <hr />
-
-
-
-
-        <div class="mb-3">
-          <label for="formFile" class="form-label">Upload Image</label>
-          <input class="form-control" type="file" value="dataValue" id="formFile">
-        </div>
-            <div class="col-auto">
-                <button onclick="myFunction()" class="btn btn-primary mb-3">Submit</button>
-            </div>
-                <script>
-function myFunction(){
-var dataValue = $("#keyName").val();
-$.ajax({
-            type : 'POST',
-            //remove the .php from results.php.php
-            url : "https://api.cloudflare.com/client/v4/accounts/245302718047bba4dfecc0817e7c92b1/images/v2/direct_upload",
-            //Add the request header
-            headers : {
-                 Authorization: "Bearer 462XIN0OdrHu6k3MkbYoNu5mACi3GJkRW6OQtT7B",
-                 "Content-Type" : "application/",
-            },
-            //Add form data
-            data : {formFile : dataValue},
-            success : function(response) {
-                console.log(response);
-            },
-            error : function(xhr, status, error) {
-                var err = eval("(" + xhr.responseText + ")");
-                console.log(err);
-            }
-        }); //End of Ajax
-}   // End of myFunction
-    </script>
-
-    <hr />
 
     <form method="post" class="mx-auto narrow_form">
 	{{ form.csrf_token }}

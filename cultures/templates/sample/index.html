@@ -1,12 +1,18 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Samples{% endblock %}</h1>
+          <form method="post" class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3 d-inline-block" role="search">
+          {{ search_form.query(class_="form-control form-control", size=22) }}
+        </form>
 {% endblock %}
 
 {% block content %}
-
-  {% for item in items %}
+    <h2 class="mb-3">Sample List
+    {% if search_query is not none %}
+        - {{ search_query }}
+    {% endif %}
+    </h2>
+    {% for item in items %}
     <article class="item">
     <div class="row">
         <div class="col-sm-1">
@@ -24,10 +30,11 @@
             {{ item['initials'] }}
         </div>
         <div class="col-sm-2">
-            {{ item['email'] }} on {{ item['created'].strftime('%Y-%m-%d') }}
-        </div>
+            {{ item['note_body'] }}<br />
+            {{ (item['note_date']|string)[:10] }}{{ item['note_initials'] }}        </div>
         <div class="col-sm-2">
-            {{ item['body'] }}
+            {{ item['body'] }}<br />
+
         </div>
             <div class="col-sm-2">
             {{ item['full_id'] }}
@@ -45,5 +52,7 @@
   {% endfor %}
 
   <form action="{{ url_for('sample.makelabels') }}" method="post">
-    <input class="danger" type="submit" value="Make Labels" onclick="return confirm('Are you sure?');">
-  </form>{% endblock %}
+    <input class="danger" type="submit" class="btn btn_secondary" value="Make Labels" onclick="return confirm('Are you sure?');">
+  </form>
+
+{% endblock %}

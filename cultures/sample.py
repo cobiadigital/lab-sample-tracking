@@ -42,7 +42,7 @@ class CreateForm(FlaskForm):
 
 class NoteForm(FlaskForm):
     date = DateTimeField('Date')
-    body = TextAreaField('Body')
+    body = TextAreaField('New Note')
     lab = SelectField('Lab', choices=[], validate_choice=True)
     initials = StringField('Initials')
     submit = SubmitField('Submit')
@@ -50,6 +50,12 @@ class NoteForm(FlaskForm):
 class PhotoForm(FlaskForm):
     photo = FileField(validators=[FileRequired()])
     lab = SelectField('Lab', choices=[], validate_choice=True)
+    submit = SubmitField('Upload')
+
+class SearchForm(FlaskForm):
+    query = StringField('Search Query')
+    submit = SubmitField('Submit')
+
 
 def get_labs():
     db = get_db()
@@ -59,71 +65,40 @@ def get_labs():
     lab_dict = {key: val for key, date, val in labs}
     return lab_dict
 
-@bp.route('/')
+@bp.route('/', methods=('GET', 'POST'))
 def index():
+    search_form = SearchForm()
     db = get_db()
-    items = db.execute(
-        'SELECT s.id, isprimary, s.lab_id, title, comment, date, body, s.created, author_id, email, '
-        ' l.name, s.initials, full_id, transfer_from '
-        'FROM sample s  JOIN user u ON s.author_id = u.id '
-        'JOIN lab l ON s.lab_id = l.id '
-        # 'JOIN( SELECT note_body, note_date, note_lab_id, sample_id, note_initials  '
-        # '    from note ORDER BY note_date DESC LIMIT 1 '
-        # ' ) n  ON n.sample_id = s.id '
-        'WHERE deleted IS NULL ORDER BY s.created DESC'
-    ).fetchall()
-    return render_template('sample/index.html', items=items)
-#
-# @bp.route('/htmx/')
-# def index2():
-#     db = get_db()
-#     items = db.execute(
-#         'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email, '
-#         ' l.name, s.initials, full_id, transfer_from, note_body, note_initials, note_date, note_lab_id '
-#         'FROM sample s  JOIN user u ON s.author_id = u.id '
-#         'JOIN lab l ON s.lab_id = l.id '
-#         'JOIN( SELECT note_body, note_date, note_lab_id, sample_id, note_initials  '
-#         '    from note ORDER BY note_date DESC LIMIT 1 '
-#         ' ) n  ON n.sample_id = s.id WHERE deleted IS NULL ORDER BY s.created DESC'
-#     ).fetchall()
-#     return render_template('sample/index2.html', items=items)
-#
-# def searching(self, word):
-#     if (word is None):
-#         return False
-#     return word.lower() in self.title.lower()
-#
-# @app.route('/results')
-# def search_results(search):
-#     results = []
-#     search_string = search.data['search']
-#     if search.data['search'] == '':
-#         qry = db_session.query(Album)
-#         results = qry.all()
-#     if not results:
-#         flash('No results found!')
-#         return redirect('/')
-#     else:
-#         # display results
-#         return render_template('results.html', results=results)
-#
-# @bp.route('/search', methods=('POST'))
-# def search():
-#     db = get_db()
-#     items = db.execute(
-#         'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email, '
-#         ' l.name, s.initials, full_id, transfer_from, note_body, note_initials, note_date, note_lab_id '
-#         'FROM sample s  JOIN user u ON s.author_id = u.id '
-#         'JOIN lab l ON s.lab_id = l.id '
-#         'JOIN( SELECT note_body, note_date, note_lab_id, sample_id, note_initials  '
-#         '    from note ORDER BY note_date DESC LIMIT 1 '
-#         ' ) n  ON n.sample_id = s.id WHERE deleted IS NULL ORDER BY s.created DESC'
-#     ).fetchall()
-#     searchWord = request.form.get('search', None)
-#     matchsample = [item in item in items if searching(searchWord)]
-#     return render_template('partials/results.html', items=matchsample)
-#
+    if request.method == 'GET':
+        items = db.execute('''
+            SELECT s.id, isprimary, s.lab_id, title, comment, s.date, s.body, s.created, s.author_id, 
+            email, l.name, s.initials, full_id, transfer_from, n.body as note_body, 
+            n.initials as note_initials, n.note_date
+            FROM sample s  JOIN user u ON s.author_id = u.id
+            JOIN lab l ON s.lab_id = l.id
+            LEFT JOIN ( SELECT body, sample_id, initials, max(date) as note_date FROM note
+            GROUP BY sample_id ) n ON n.sample_id = s.id
+            WHERE s.deleted IS NULL ORDER BY s.created DESC 
+            '''
+        ).fetchall()
+    if request.method == 'POST':
+        search_query = search_form.query.data
+        items = db.execute('''
+            SELECT s.id, isprimary, s.lab_id, title, comment, s.date, s.body, s.created, s.author_id, 
+            email, l.name, s.initials, full_id, transfer_from, n.body as note_body, 
+            n.initials as note_initials, n.note_date
+            FROM sample s  JOIN user u ON s.author_id = u.id
+            JOIN lab l ON s.lab_id = l.id
+            LEFT JOIN ( SELECT body, sample_id, initials, max(date) as note_date FROM note
+            GROUP BY sample_id ) n ON n.sample_id = s.id
+            WHERE s.deleted IS NULL AND full_id LIKE ? ORDER BY s.created DESC
+            ''', ('%' + search_query + '%',)
+        ).fetchall()
+        if len(items) == 1:
+            return redirect(url_for('sample.single', id=items[0]['id']))
+        return render_template('sample/index.html', items=items, search_form=search_form, search_query=search_query)
 
+    return render_template('sample/index.html', items=items, search_form=search_form)
 
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
@@ -172,9 +147,12 @@ def create():
 
 def get_sample(id, check_author=True):
     item = get_db().execute(
-        'SELECT s.id, title, isprimary, date, comment, body, s.created, name, s.initials, s.lab_id, '
-        'email, full_id, transfer_from, isprimary FROM sample s JOIN user u ON s.author_id = u.id '
-        ' JOIN lab l ON s.lab_id = l.id WHERE s.id = ? ',
+        'SELECT s.id, title, isprimary, date, comment, body, s.created, name, '
+       's.initials, s.lab_id, email, full_id, transfer_from, isprimary, '
+       'm.file_url FROM sample s JOIN user u ON s.author_id = u.id '
+       'JOIN  lab l ON s.lab_id = l.id '
+       'LEFT JOIN  (SELECT * FROM media WHERE primary_image=1) m ' 
+        'ON m.sample_id = s.id WHERE s.id = ? ',
         (id,)
     ).fetchone()
 
@@ -188,6 +166,7 @@ def get_sample(id, check_author=True):
 
 @bp.route('/<int:id>/', methods=('GET', 'POST' ))
 def single(id):
+    search_form = SearchForm()
     form = NoteForm()
     item = get_sample(id)
     notes = get_db().execute(
@@ -197,12 +176,13 @@ def single(id):
     lab_dict = get_labs()
     form.lab.choices = [(lid, lval) for lid, lval in lab_dict.items()]
     photoform = PhotoForm()
-    #account_identifier = os.getenv('IMAGE_API')
-    account_identifier = os.getenv('ACCOUNT_ID')
+    photoform.lab.choices = form.lab.choices
+
 
 
     if request.method == 'GET':
         form.lab.data = (g.user['lab_id'], g.user['name'])
+        photoform.lab.data = (g.user['lab_id'], g.user['name'])
         form.date.data = datetime.now()
         form.initials.data = g.user['initials']
 
@@ -220,8 +200,7 @@ def single(id):
         db.commit()
         return redirect(url_for('sample.single', id=id))
 
-    return render_template('sample/single.html', item=item, notes=notes, form=form, photoform=photoform,
-                           account_identifier=account_identifier)
+    return render_template('sample/single.html', item=item, notes=notes, form=form, photoform=photoform, search_form=search_form)
 
 
 @bp.route('/<int:id>/update', methods=('GET', 'POST'))
@@ -399,47 +378,33 @@ def upload(id):
     if form.validate_on_submit():
         user_id = g.user['id']
         file = form.photo.data
+        print(type(file))
         lab_id = form.lab.data
         filename = secure_filename(file.filename)
         #file_url = 'test url'
-        file_url = upload_file(file, filename)
-        url = f"https://api.cloudflare.com/client/v4/accounts/{os.getenv('ACCOUNT_ID')}/images/v2/direct_upload"
-
-        payload = '''
-        -----011000010111000001101001\r\nContent-Disposition: form-data; name="id"\r\n\r\n\r\n
-        -----011000010111000001101001\r\nContent-Disposition: form-data; name=\"metadata\"\r\n\r\n\r\n
-        -----011000010111000001101001\r\nContent-Disposition: form-data; name=\"requireSignedURLs\"\r\n\r\n\r\n
-        -----011000010111000001101001--\r\n\r\n
-        '''
+        #file_url = upload_file(file, filename)
         headers = {
-            "Content-Type": "multipart/form-data; boundary=---011000010111000001101001",
-            'Authorization': f'Bearer {os.getenv("IMAGE_API")}'
+            'Authorization': f'Bearer {os.getenv("IMAGE_API")}',
         }
+        files = {
+            'file': file,
+        }
+        response = requests.post(
+            f"https://api.cloudflare.com/client/v4/accounts/{os.getenv('IMAGE_ACCOUNT_ID')}/images/v1",
+            headers=headers, files=files)
+        if response.json()['success'] == True:
 
-        response = requests.request("POST", url, data=payload, headers=headers)
-
-        print(response.text)
-        # url = f"https://api.cloudflare.com/client/v4/accounts/{os.getenv('ACCOUNT_ID')}/images/v1"
-        #
-        # payload = f'-----011000010111000001101001\r\nContent-Disposition: form-data; name="metadata"\r\n\r\n\r\n-----011000010111000001101001\r\nContent-Disposition: form-data; name="requireSignedURLs"\r\n\r\n\r\n-----011000010111000001101001\r\nContent-Disposition: form-data; name="url"\r\n\r\n["{file_url}"]\r\n-----011000010111000001101001--\r\n\r\n'
-        # headers = {
-        #     "Content-Type": "multipart/form-data; boundary=---011000010111000001101001",
-        #     'Authorization': f'Bearer {os.getenv("IMAGE_API")}'}
-        #
-        # response = requests.request("POST", url, data=payload, headers=headers)
-        #
-        # print(response.text)
-        # headers = {f'Content-type': 'multipart/form-datamultipart/form-data;boundary=9f74e4d3067e4ce482bdc9e311b58d2d',
-        #            'File': f'@/{filename}', 'Authorization': f'Bearer {os.getenv("IMAGE_API")}'}
-        # api_url = f'https://api.cloudflare.com/client/v4/accounts/{os.getenv("ACCOUNT_ID")}/images/v2/direct_upload'
-        # r = requests.post(api_url, data=file, headers=headers)
-        # print(r.content)
-        db = get_db()
-        db.execute(
-            'INSERT INTO media (filename, file_url, lab_id, sample_id, user_id)'
-            ' VALUES (?, ?, ?, ?, ?)',
-            (filename, file_url, lab_id, id, user_id)
-        )
-        db.commit()
-        print('success')
-        return redirect(url_for('sample.index'))
+            print(response.json())
+            print(response.json()['result']['variants'][0])
+            file_url = response.json()['result']['variants'][0]
+            db = get_db()
+            db.execute(
+                'INSERT INTO media (filename, file_url, lab_id, sample_id, user_id, primary_image)'
+                ' VALUES (?, ?, ?, ?, ?, 1)',
+                (filename, file_url, lab_id, id, user_id)
+            )
+            db.commit()
+            print('success')
+        else:
+            print(response.json())
+        return redirect(url_for('sample.single', id=id))
