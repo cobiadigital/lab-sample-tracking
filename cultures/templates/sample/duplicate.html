@@ -31,6 +31,12 @@
         {{ form.body.label }}
         {{ form.body(class_="form-control", size=32) }}
     </div>
+    <div class="form-check my-3">
+        {{ form.makeprimary(class_="form-check-input", type="checkbox") }}
+        {{ form.makeprimary.label }}
+
+    </div>
+
     {{ form.submit(class_="form-control") }}
 </form>
 {% endblock %}

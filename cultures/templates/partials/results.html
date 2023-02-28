@@ -1,0 +1,34 @@
+ <article class="item">
+    <div class="row">
+        <div class="col-sm-1">`
+            <a href="{{ url_for('sample.single', id=item['id']) }}">{{ item['title'] }}</a>
+        </div>
+        <div class="col-sm-1">
+            {{ item['comment'] }}
+        </div>
+        <div class="col-sm-1">
+            {{ item['date'].strftime("%Y%m%d") }}
+        </div>
+        <div class="col-sm-1">
+            {{ item['initials'] }}
+        </div>
+        <div class="col-sm-2">
+            {{ item['email'] }} on {{ item['created'].strftime('%Y-%m-%d') }}
+        </div>
+        <div class="col-sm-2">
+            {{ item['body'] }}
+        </div>
+            <div class="col-sm-2">
+            {{ item['note_body'] }}<br>
+             {{ item['note_lab_id'] }}{{ item['note_date']}} {{ item['note_initials'] }}
+        </div>
+        <div class="col-sm-1">
+            {% if g.user['id'] == item['author_id'] %}
+                  <a class="action" href="{{ url_for('sample.update', id=item['id']) }}">Edit</a>
+            {% endif %}
+        </div>
+    </div>
+    </article>
+    {% if not loop.last %}
+      <hr>
+    {% endif %}

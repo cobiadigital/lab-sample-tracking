@@ -1,0 +1,18 @@
+const data = new FormData();
+data.append("metadata", "");
+data.append("requireSignedURLs", "");
+data.append("url", "[\"https://example.com/path/to/logo.png\"]");
+
+const xhr = new XMLHttpRequest();
+xhr.withCredentials = true;
+
+xhr.addEventListener("readystatechange", function () {
+  if (this.readyState === this.DONE) {
+    console.log(this.responseText);
+  }
+});
+
+xhr.open("POST", "https://api.cloudflare.com/client/v4/accounts/account_identifier/images/v1");
+xhr.setRequestHeader("X-Auth-Email", "");
+
+xhr.send(data);

@@ -1,11 +1,59 @@
 {% extends 'base.html' %}
 
+{% block header %}
+          <form action="{{ url_for('sample.index') }}" method="post" class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3 d-inline-block" role="search">
+          {{ search_form.query(class_="form-control form-control", size=22) }}
+        </form>
+{% endblock %}
 
 {% block content %}
-    <article class="item">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+
+    <article class="item narrow_form mx-auto">
       <header>
         <div>
-          <h1>{{ item['title'] }}</h1>
+        {% if item['file_url'] is not none %}
+            <img src="{{ item['file_url'] }}" class="img-fluid">
+        {% endif %}
+  <div class="accordion accordion-flush" id="accordionImage">
+  <div class="accordion-item bg-light">
+    <h2 class="accordion-header" id="accordion-headerOne">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+              data-bs-target="#accordion-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+          Add/Change Image
+      </button>
+    </h2>
+    <div id="accordion-collapseOne" class="accordion-collapse collapse mb-5" aria-labelledby="accordion-headerOne" data-bs-parent="#accordionImage">
+
+    <form action="{{ url_for('sample.upload', id=item['id']) }}" method="POST" enctype="multipart/form-data">
+      {{ photoform.hidden_tag() }}
+    <div class="my-3">
+     {{ photoform.photo (class_="form-control")}}
+     {% for error in photoform.photo.errors %}
+         <span style="color: red;">{{ error }}</span>
+     {% endfor %}
+    </div>
+{#    <div class="input-group">#}
+        <div class="row mb-3">
+            <div class="col-6">
+                        {{ photoform.lab.label }}
+            </div>
+            <div class="col-6">
+                        {{ photoform.lab(class_="form-control") }}
+            </div>
+        </div>
+{#    </div>#}
+            {{ photoform.submit(class_="btn btn-primary mb-3") }}
+    </form>
+        </div>
+  </div>
+    </div>
+          <h4>{{ item['title'] }}
+              {%  if item['isprimary'] == 'Primary' %} Primary{% endif %}
+              {% if item['isprimary'] == 'Backup' %} Backup{% endif %}
+               {% if item['isprimary'] == 'Unneeded' %} Unneeded{% endif %}
+
+          </h4>
           <div class="about">by {{ item['email'] }} on {{ item['created'].strftime('%Y-%m-%d') }}</div>
              {% if item['transfer_from'] is not none %}
                  <div class="about"><a href="{{ url_for('sample.single', id=item['transfer_from']) }}">{{ item['transfer_from'] }}</a></div>
@@ -18,9 +66,96 @@
       <p>{{ item['name'] }} {{ item['title'] }} - {{ item['comment'] }} <br />
           {{ item['date'].strftime("%Y%m%d") }} {{ item['initials'] }}</p>
       <p class="body">{{ item['body'] }}</p>
-    </article>
-    <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary">Duplicate</a>
+    <div class="row justify-content-center">
+        <div class="col">
+  <a href="{{ url_for('sample.update', id=item['id'])}}" class="btn btn-secondary btn-sm">Update</a>
+</div>
+<div class="col">
 
+  <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary btn-sm">Duplicate</a>
+</div>
+<div class="col">
+    {% if item['isprimary'] != 'primary' %}
+      {% if item['transfer_from'] is not none %}
+        <form action="{{ url_for('sample.makeprimary', id=item['id'], transfer_from=item['transfer_from']) }}" method="post">
+      {% else %}
+      <form action="{{ url_for('sample.makeprimary', id=item['id'], transfer_from=0)}}" method="post">
+      {% endif %}
+
+        <input class="btn btn-secondary btn-sm" type="submit" value="Make Primary" onclick="return confirm('Setting Primary');">
+      </form>
+    {% else %}
+      <form action="{{ url_for('sample.makebackup', id=item['id'])}}" method="post">
+    <input class="btn btn-secondary btn-sm" type="submit" value="Make Backup" onclick="return confirm('Making Backup');">
+  </form>
+    {% endif %}
+</div>
+        <div class="col">
   <form action="{{ url_for('sample.delete', id=item['id']) }}" method="post">
-    <input class="danger" type="submit" value="delete" onclick="return confirm('Are you sure?');">
-  </form>{% endblock %}
+    <input class="btn btn-secondary btn-sm" type="submit" value="delete" onclick="return confirm('Are you sure?');">
+  </form>
+</div>
+</div>
+
+
+<hr />
+
+    <form method="post" class="mx-auto narrow_form">
+	{{ form.csrf_token }}
+    <div class="form-group">
+        {{ form.body.label }}
+        {{ form.body(class_="form-control", size=32) }}
+    </div>
+        <div class="row">
+            <div class="col">
+                <div class="form-group" >
+                    {{ form.lab.label }}
+                    {{ form.lab(class_="form-control") }}
+                </div>
+            </div>
+
+            <div class="col-6">
+                <div class="form-group">
+                    {{ form.date.label }}
+                    {{ form.date(class_="form-control", size=32) }}
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    {{ form.initials.label }}
+                    {{ form.initials(class_="form-control", size=32) }}
+                </div>
+            </div>
+    </div>
+    {{ form.submit(class_="form-control") }}
+</form>
+
+    {% if notes is not none %}
+        {% for note in notes %}
+    <div class="card mx-auto mb-3 pt-2" style="max-width: 30rem;">
+    <div class="">
+     <p>{{ note['note_body'] }}</p>
+    </div>
+    <div class="card-footer">
+        <div class="row">
+            <div class="col">
+                {{ note['name'] }}
+            </div>
+            <div class="col-6">
+                {{ note['note_date'] }}
+            </div>
+            <div class="col">
+                {{ note['note_initials'] }}
+            </div>
+        </div>
+    </div>
+</div>
+        {% endfor %}
+
+    {% endif %}
+
+    </article>
+
+
+
+{% endblock %}
