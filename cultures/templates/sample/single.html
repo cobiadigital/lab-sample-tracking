@@ -75,7 +75,7 @@
   <a href="{{ url_for('sample.duplicate', id=item['id'])}}" class="btn btn-secondary btn-sm">Duplicate</a>
 </div>
 <div class="col">
-    {% if item['isprimary'] != 'primary' %}
+    {% if item['isprimary'] != 'Primary' %}
       {% if item['transfer_from'] is not none %}
         <form action="{{ url_for('sample.makeprimary', id=item['id'], transfer_from=item['transfer_from']) }}" method="post">
       {% else %}
@@ -92,7 +92,7 @@
 </div>
         <div class="col">
   <form action="{{ url_for('sample.delete', id=item['id']) }}" method="post">
-    <input class="btn btn-secondary btn-sm" type="submit" value="delete" onclick="return confirm('Are you sure?');">
+    <input class="btn btn-secondary btn-sm" type="submit" value="delete" onclick="return confirm('Are you sure you want to delete this sample?');">
   </form>
 </div>
 </div>
@@ -147,7 +147,9 @@
             <div class="col">
                 {{ note['note_initials'] }}
             </div>
-        </div>
+        </div><form class="text-end" action="{{ url_for('sample.delete_note', sample_id=sample_id, note_id=note['note_id'])}}" method="post">
+    <input class="btn btn-txt btn-sm" type="submit" value="Delete Note" onclick="return confirm('Are you sure you want to delete this note?');">
+  </form>
     </div>
 </div>
         {% endfor %}
