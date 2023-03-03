@@ -161,8 +161,16 @@ def get_sample(id, check_author=True):
 
     # if check_author and item['author_id'] != g.user['id']:
     #     abort(403)
-
     return item
+
+def get_note(id):
+    note = get_db().execute(
+            'SELECT body as note_body, l.name, n.date as note_date, n.initials as note_initials FROM note n JOIN lab l on n.lab_id = l.id WHERE n.id = ?',
+            (id,)
+        ).fetchone()
+    if note is None:
+        abort(404, f"Post id {id} doesn't exist.")
+    return note
 
 @bp.route('/<int:id>/', methods=('GET', 'POST' ))
 def single(id):
@@ -170,15 +178,15 @@ def single(id):
     form = NoteForm()
     item = get_sample(id)
     notes = get_db().execute(
-        'SELECT body as note_body, l.name, n.date as note_date, n.initials as note_initials FROM note n JOIN lab l on n.lab_id = l.id WHERE sample_id = ? ORDER BY n.date DESC',
+        'SELECT n.id as note_id, body as note_body, l.name, n.date as note_date, '
+        'n.initials as note_initials FROM note n JOIN lab l on n.lab_id = l.id '
+        'WHERE sample_id = ? AND n.deleted IS NULL ORDER BY n.date DESC ',
         (id,)
     ).fetchall()
     lab_dict = get_labs()
     form.lab.choices = [(lid, lval) for lid, lval in lab_dict.items()]
     photoform = PhotoForm()
     photoform.lab.choices = form.lab.choices
-
-
 
     if request.method == 'GET':
         form.lab.data = (g.user['lab_id'], g.user['name'])
@@ -200,7 +208,7 @@ def single(id):
         db.commit()
         return redirect(url_for('sample.single', id=id))
 
-    return render_template('sample/single.html', item=item, notes=notes, form=form, photoform=photoform, search_form=search_form)
+    return render_template('sample/single.html', sample_id=id, item=item, notes=notes, form=form, photoform=photoform, search_form=search_form)
 
 
 @bp.route('/<int:id>/update', methods=('GET', 'POST'))
@@ -325,6 +333,17 @@ def delete(id):
         (id,))
     db.commit()
     return redirect(url_for('sample.index'))
+
+@bp.route('/<int:sample_id>/<int:note_id>/deletenote', methods=('POST',))
+@login_required
+def delete_note(sample_id, note_id):
+    get_note(note_id)
+    db = get_db()
+    db.execute(
+        'UPDATE note SET deleted = CURRENT_TIMESTAMP WHERE id = ?',
+        (note_id,))
+    db.commit()
+    return redirect(url_for('sample.single', id=sample_id))
 
 @bp.route('/<int:id>/makeprimary?transfer_from<int:transfer_from>', methods=('POST',))
 @login_required
