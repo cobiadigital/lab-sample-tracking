@@ -1,6 +1,9 @@
 venv/
 *.env
 *.pyc
+.idea/
+.DS_Store
+cultures/.DS_Store
 __pycache__/
 
 instance/
