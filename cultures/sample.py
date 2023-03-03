@@ -9,7 +9,9 @@ from werkzeug.utils import secure_filename
 from flask import current_app
 from dotenv import load_dotenv
 import requests
-
+import csv
+import io
+from flask import send_file
 load_dotenv()
 
 
@@ -386,6 +388,42 @@ def makelabels():
     filename = makelabel(items)
     #upload_pdf(filename)
     print(filename)
+    return redirect(url_for('sample.index'))
+
+@bp.route('/make_csv', methods=('POST',))
+@login_required
+def make_csv():
+    db = get_db()
+    items=db.execute('''
+            SELECT s.id, isprimary, s.lab_id, title, comment, s.date, s.body, s.created, s.author_id, 
+            email, l.name, s.initials, full_id, transfer_from, n.body as note_body, 
+            n.initials as note_initials, n.note_date
+            FROM sample s  JOIN user u ON s.author_id = u.id
+            JOIN lab l ON s.lab_id = l.id
+            LEFT JOIN ( SELECT body, sample_id, initials, max(date) as note_date FROM note
+            GROUP BY sample_id ) n ON n.sample_id = s.id
+            WHERE s.deleted IS NULL ORDER BY s.created DESC 
+            '''
+            ).fetchall()
+
+    csv_name = str(datetime.now().strftime('%Y%m%d-%H%M')) + 'cultures.csv'
+    proxy = io.StringIO()
+
+    writer = csv.writer(proxy)
+    writer.writerows(items)
+    # Creating the byteIO object from the StringIO Object
+    mem = io.BytesIO()
+    mem.write(proxy.getvalue().encode())
+    # seeking was necessary. Python 3.5.2, Flask 0.12.2
+    mem.seek(0)
+    proxy.close()
+    return send_file(
+        mem,
+        as_attachment=True,
+        download_name=csv_name,
+        mimetype='text/csv'
+    )
+
     return redirect(url_for('sample.index'))
 
 @bp.route('/<int:id>/upload', methods=['POST',])

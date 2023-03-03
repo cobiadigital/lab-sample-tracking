@@ -50,9 +50,17 @@
       <hr>
     {% endif %}
   {% endfor %}
-
+    <div class="row narrow_form">
+    <div class="col">
   <form action="{{ url_for('sample.makelabels') }}" method="post">
     <input class="danger" type="submit" class="btn btn_secondary" value="Make Labels" onclick="return confirm('Are you sure?');">
   </form>
+        </div>
+         <div class="col">
+  <form action="{{ url_for('sample.make_csv') }}" method="post">
+    <input class="danger" type="submit" class="btn btn_secondary" value="Make CSV">
+  </form>
+         </div>
+    </div>
 
 {% endblock %}
