@@ -12,6 +12,8 @@ import requests
 import csv
 import io
 from flask import send_file
+from blabel import LabelWriter
+
 load_dotenv()
 
 
@@ -375,19 +377,59 @@ def makebackup(id):
     db.commit()
     return redirect(url_for('sample.single', id=id))
 
-
-@bp.route('/makelabels', methods=('POST',))
+#
+# @bp.route('/makelabels', methods=('POST',))
+# @login_required
+# def makelabels():
+#     db = get_db()
+#     items=db.execute(
+#             'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email,'
+#             ' l.name, s.initials, full_id FROM sample s JOIN user u ON s.author_id = u.id'
+#             ' JOIN lab l ON s.lab_id = l.id WHERE deleted IS NULL ORDER BY s.created DESC'
+#     ).fetchall()
+#     filename = makelabel(items)
+#     #upload_pdf(filename)
+#     print(filename)
+#     return redirect(url_for('sample.index'))
+@bp.route('/makelabels/', methods=('POST',), defaults={'search_query': None})
+@bp.route('/makelabels/<search_query>', methods=('POST',))
 @login_required
-def makelabels():
-    db = get_db()
-    items=db.execute(
+def makelabels(search_query):
+    assert search_query == request.view_args['search_query']
+    print(search_query)
+    if search_query is not None:
+        db = get_db()
+        items=db.execute(
+                'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email,'
+                ' l.name, s.initials, full_id FROM sample s JOIN user u ON s.author_id = u.id'
+                ' JOIN lab l ON s.lab_id = l.id WHERE deleted IS NULL AND full_id LIKE ? ORDER BY s.created DESC ',
+                 ('%' + search_query + '%',)
+            ).fetchall()
+    else:
+        db = get_db()
+        items = db.execute(
             'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email,'
             ' l.name, s.initials, full_id FROM sample s JOIN user u ON s.author_id = u.id'
             ' JOIN lab l ON s.lab_id = l.id WHERE deleted IS NULL ORDER BY s.created DESC'
-    ).fetchall()
-    filename = makelabel(items)
-    #upload_pdf(filename)
-    print(filename)
+        ).fetchall()
+    label_writer = LabelWriter(os.path.join(current_app.instance_path, 'B33-59-0.5x1.html'),
+                               default_stylesheets=(os.path.join(current_app.instance_path, 'B33-59-0.5x1.css'),))
+    records = []
+    for item in items:
+        records.append(dict(sample_title=item['title'], sample_date=item['date'], sample_comment=item['comment'],
+                            sample_lab=item['name'], sample_initials=item['initials'], sample_full_id=item['full_id']))
+    filename = datetime.now().strftime("%Y%m%d-%H%M") + 'labels.pdf'
+    bytes_pdf = label_writer.write_labels(records)
+    label_pdf = io.BytesIO(bytes_pdf)
+    return send_file(
+        label_pdf,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/pdf'
+    )
+    final_url = upload_file(label_pdf, filename)
+    # filename = makelabel(items)
+    print(final_url)
     return redirect(url_for('sample.index'))
 
 @bp.route('/make_csv', methods=('POST',))
@@ -407,6 +449,7 @@ def make_csv():
             ).fetchall()
 
     csv_name = str(datetime.now().strftime('%Y%m%d-%H%M')) + 'cultures.csv'
+
     proxy = io.StringIO()
 
     writer = csv.writer(proxy)

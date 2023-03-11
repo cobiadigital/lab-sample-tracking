@@ -7,6 +7,20 @@
 {% endblock %}
 
 {% block content %}
+   {% if g.user %}
+       <div class="row narrow_form mx-auto">
+        <div class="col">
+  <form action="{{ url_for('sample.makelabels', search_query=search_query if not None) }}" method="post">
+    <input class="danger" type="submit" class="btn btn_secondary" value="Make Labels" onclick="return confirm('Are you sure?');">
+  </form>
+        </div>
+         <div class="col">
+  <form action="{{ url_for('sample.make_csv') }}" method="post">
+    <input class="danger" type="submit" class="btn btn_secondary" value="Make CSV">
+  </form>
+         </div>
+       </div>
+
     <h2 class="mb-3">Sample List
     {% if search_query is not none %}
         - {{ search_query }}
@@ -17,8 +31,9 @@
     <div class="row">
         <div class="col-sm-1">
             <a href="{{ url_for('sample.single', id=item['id']) }}">{{ item['title'] }}
-              {%  if item['isprimary'] == 'primary' %} Primary{% endif %}
-              {% if item['isprimary'] == 'backup' %} Backup{% endif %}</a>
+              {%  if item['isprimary'] == 'Primary' %} Primary{% endif %}
+              {% if item['isprimary'] == 'Backup' %} Backup{% endif %}
+            {% if item['isprimary'] == 'Unneeded' %} Unneeded{% endif %}</a>
         </div>
         <div class="col-sm-1">
             {{ item['comment'] }}
@@ -50,17 +65,24 @@
       <hr>
     {% endif %}
   {% endfor %}
-    <div class="row narrow_form">
-    <div class="col">
-  <form action="{{ url_for('sample.makelabels') }}" method="post">
-    <input class="danger" type="submit" class="btn btn_secondary" value="Make Labels" onclick="return confirm('Are you sure?');">
-  </form>
+
+     {% else %}
+        <p>You need to log-in before seeing this content</p>
+    <form action="{{ url_for('auth.login') }}" method="post" class="mx-auto" style="max-width: 330px; padding: 15px;">
+{#    <img class="mb-4" src="/docs/5.3/assets/brand/bootstrap-logo.svg" alt="" width="72" height="57">#}
+        <h1 class="h3 mb-3 fw-normal">Please login</h1>
+
+        <div class="form-floating">
+          <input type="email" class="form-control" id="floatingInput" name="email" placeholder="name@example.com" required>
+          <label for="floatingInput">Email address</label>
         </div>
-         <div class="col">
-  <form action="{{ url_for('sample.make_csv') }}" method="post">
-    <input class="danger" type="submit" class="btn btn_secondary" value="Make CSV">
-  </form>
-         </div>
-    </div>
+        <div class="form-floating">
+          <input type="password" class="form-control" id="floatingPassword" name="password" placeholder="Password" required>
+          <label for="floatingPassword">Password</label>
+        </div>
+
+        <button class="w-100 btn btn-lg btn-primary" type="submit">Log In</button>
+      </form>
+    {% endif %}
 
 {% endblock %}

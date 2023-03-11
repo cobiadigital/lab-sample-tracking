@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from flask_admin import Admin
 
 
 def create_app(test_config=None):
@@ -10,6 +11,11 @@ def create_app(test_config=None):
         SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'cultures.sqlite'),
     )
+    # set optional bootswatch theme
+    app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
+
+    admin = Admin(app, name='cultures', template_mode='bootstrap5')
+    # Add administrative views here
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
