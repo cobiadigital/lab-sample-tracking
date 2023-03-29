@@ -462,8 +462,8 @@ def make_csv(search_query):
             JOIN lab l ON s.lab_id = l.id
             LEFT JOIN ( SELECT body, sample_id, initials, max(date) as note_date FROM note
             GROUP BY sample_id ) n ON n.sample_id = s.id
-            WHERE s.deleted IS NULL AND full_id LIKE ? ORDER BY s.full_id DESC ''',
-            ('%' + search_query + '%',)
+            WHERE s.deleted IS NULL AND full_id LIKE ? ORDER BY s.full_id DESC 
+            ''', ('%' + search_query + '%',)
             ).fetchall()
     else:
         db = get_db()
@@ -479,10 +479,9 @@ def make_csv(search_query):
                 '''
                 ).fetchall()
 
-    csv_name = str(datetime.now().strftime('%Y%m%d-%H%M')) + 'cultures.csv'
+    csv_name = str(datetime.now().strftime('%Y%m%d-%H%M')) + 'samples.csv'
 
     proxy = io.StringIO()
-
     writer = csv.writer(proxy)
     writer.writerows(items)
     # Creating the byteIO object from the StringIO Object
@@ -491,8 +490,13 @@ def make_csv(search_query):
     # seeking was necessary. Python 3.5.2, Flask 0.12.2
     mem.seek(0)
     proxy.close()
-    download_file(mem, csv_name)
-    return redirect(url_for('sample.index'))
+    # download_file(mem, csv_name
+    return send_file(
+            mem,
+            as_attachment=True,
+            download_name=csv_name,
+            mimetype='text/csv'
+        )
 
 @bp.route('/<int:id>/upload', methods=['POST',])
 def upload(id):
