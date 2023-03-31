@@ -39,7 +39,8 @@
             {{ item['comment'] }}
         </div>
         <div class="col-sm-1">
-            {{ item['date'].strftime("%Y%m%d") }}
+            {{ moment( item['date'], local=True).format('YMMDD') }}
+{#            {{ item['date'].strftime("%Y%m%d") }}#}
         </div>
         <div class="col-sm-1">
             {{ item['initials'] }}
