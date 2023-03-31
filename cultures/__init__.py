@@ -1,7 +1,7 @@
 import os
 from flask import Flask
-import jinja_partials
-
+from flask_moment import Moment
+moment = Moment()
 
 
 def create_app(test_config=None):
@@ -45,5 +45,6 @@ def create_app(test_config=None):
     app.register_blueprint(sample.bp)
     app.add_url_rule('/', endpoint='index')
 
+    moment.init_app(app)
 
     return app
