@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: Cultures
+  labels:
+    app: cultures
+spec:
+  selector:
+    matchLabels:
+      app: Cultures
+  template:
+    metadata:
+      labels:
+        app: Cultures
+    spec:
+      containers:
+        - name: Cultures
+          image: cultures-image
+          ports:
+            - containerPort: 8000

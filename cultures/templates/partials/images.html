@@ -1,0 +1,14 @@
+<div id="images-div" class="row justify-content-center">
+    {% for image in images %}
+    <div class="col-1">
+    <a
+    hx-post="{{ url_for('sample.make_primary_image', id=image['id'], sample_id=image['sample_id']) }}"
+    hx-trigger="click"
+    hx-target="#image-div"
+    hx-swap="outerHTML"
+    >
+     <img src="{{image['file_url']|replace("public", "thumbnail") }}" class="img-fluid" />
+     </a>
+    </div>
+    {% endfor %}
+</div>
