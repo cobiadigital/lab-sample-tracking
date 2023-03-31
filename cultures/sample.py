@@ -469,7 +469,6 @@ def make_csv(search_query):
                 ).fetchall()
 
     csv_name = str(datetime.now().strftime('%Y%m%d-%H%M')) + 'cultures.csv'
-
     proxy = io.StringIO()
 
     writer = csv.writer(proxy)

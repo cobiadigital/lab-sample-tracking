@@ -1,7 +1,6 @@
 import os
 from flask import Flask
 from flask_moment import Moment
-
 moment = Moment()
 
 
