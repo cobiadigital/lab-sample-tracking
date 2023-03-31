@@ -69,13 +69,6 @@ def get_labs():
     lab_dict = {key: val for key, date, val in labs}
     return lab_dict
 
-def download_file(pdf, filename):
-    return send_file(
-        pdf,
-        as_attachment=True,
-        download_name=filename,
-        mimetype='application/pdf'
-    )
 @bp.route('/', methods=('GET', 'POST'))
 def index():
     search_form = SearchForm()
@@ -158,12 +151,12 @@ def create():
 
 def get_sample(id, check_author=True):
     item = get_db().execute(
-        '''
-         SELECT s.id, title, isprimary, date, comment, body, s.created, name,
-        s.initials, s.lab_id, email, full_id, transfer_from, isprimary,
-        m.file_url FROM sample s JOIN user u ON s.author_id = u.id
-        JOIN  lab l ON s.lab_id = l.id
-        LEFT JOIN media m ON m.id = s.primary_image WHERE s.id = ? ''',
+        'SELECT s.id, title, isprimary, date, comment, body, s.created, name, '
+       's.initials, s.lab_id, email, full_id, transfer_from, isprimary, '
+       'm.file_url FROM sample s JOIN user u ON s.author_id = u.id '
+       'JOIN  lab l ON s.lab_id = l.id '
+       'LEFT JOIN  (SELECT * FROM media WHERE primary_image=1) m ' 
+        'ON m.sample_id = s.id WHERE s.id = ? ',
         (id,)
     ).fetchone()
 
@@ -189,10 +182,9 @@ def single(id):
     form = NoteForm()
     item = get_sample(id)
     notes = get_db().execute(
-        '''
-        SELECT n.id as note_id, body as note_body, l.name, n.date as note_date, 
-        n.initials as note_initials FROM note n JOIN lab l on n.lab_id = l.id 
-        WHERE sample_id = ? AND n.deleted IS NULL ORDER BY n.date DESC ''',
+        'SELECT n.id as note_id, body as note_body, l.name, n.date as note_date, '
+        'n.initials as note_initials FROM note n JOIN lab l on n.lab_id = l.id '
+        'WHERE sample_id = ? AND n.deleted IS NULL ORDER BY n.date DESC ',
         (id,)
     ).fetchall()
     lab_dict = get_labs()
@@ -222,29 +214,6 @@ def single(id):
 
     return render_template('sample/single.html', sample_id=id, item=item, notes=notes, form=form, photoform=photoform, search_form=search_form)
 
-@bp.route('/<int:id>/images', methods=( 'POST', ))
-@login_required
-def sample_images(id):
-    db = get_db()
-    images = db.execute( '''
-       SELECT m.id, sample_id, file_url, s.primary_image FROM media m 
-       LEFT JOIN sample s on s.id = m.sample_id WHERE sample_id = ?
-         ''',
-        (id,)
-    ).fetchall()
-    return render_template('partials/images.html', images=images)
-
-
-@bp.route('/<int:id>/<int:sample_id>/make_primary_image', methods=( 'POST', ))
-@login_required
-def make_primary_image(id, sample_id):
-    db = get_db()
-    db.execute('UPDATE sample SET primary_image = ? WHERE id = ? ',
-               (id, sample_id )
-               )
-    db.commit()
-    item = get_sample(sample_id)
-    return render_template('partials/image_return.html', item=item)
 
 @bp.route('/<int:id>/update', methods=('GET', 'POST'))
 @login_required
@@ -408,7 +377,20 @@ def makebackup(id):
     db.commit()
     return redirect(url_for('sample.single', id=id))
 
-
+#
+# @bp.route('/makelabels', methods=('POST',))
+# @login_required
+# def makelabels():
+#     db = get_db()
+#     items=db.execute(
+#             'SELECT s.id, s.lab_id, title, comment, date, body, s.created, author_id, email,'
+#             ' l.name, s.initials, full_id FROM sample s JOIN user u ON s.author_id = u.id'
+#             ' JOIN lab l ON s.lab_id = l.id WHERE deleted IS NULL ORDER BY s.created DESC'
+#     ).fetchall()
+#     filename = makelabel(items)
+#     #upload_pdf(filename)
+#     print(filename)
+#     return redirect(url_for('sample.index'))
 @bp.route('/makelabels/', methods=('POST',), defaults={'search_query': None})
 @bp.route('/makelabels/<search_query>', methods=('POST',))
 @login_required
@@ -438,13 +420,16 @@ def makelabels(search_query):
                             sample_lab=item['name'], sample_initials=item['initials'], sample_full_id=item['full_id']))
     filename = datetime.now().strftime("%Y%m%d-%H%M") + 'labels.pdf'
     bytes_pdf = label_writer.write_labels(records)
-    with io.BytesIO(bytes_pdf) as label_pdf:
-        download_file(label_pdf, filename)
-        print('download complete')
-        final_url = upload_file(label_pdf, filename)
-        print(final_url)
-
+    label_pdf = io.BytesIO(bytes_pdf)
+    return send_file(
+        label_pdf,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/pdf'
+    )
+    final_url = upload_file(label_pdf, filename)
     # filename = makelabel(items)
+    print(final_url)
     return redirect(url_for('sample.index'))
 
 @bp.route('/make_csv/', methods=('POST',), defaults={'search_query': None})
@@ -485,6 +470,7 @@ def make_csv(search_query):
 
     csv_name = str(datetime.now().strftime('%Y%m%d-%H%M')) + 'cultures.csv'
     proxy = io.StringIO()
+
     writer = csv.writer(proxy)
     writer.writerows(items)
     # Creating the byteIO object from the StringIO Object
@@ -493,13 +479,14 @@ def make_csv(search_query):
     # seeking was necessary. Python 3.5.2, Flask 0.12.2
     mem.seek(0)
     proxy.close()
-    # download_file(mem, csv_name
     return send_file(
-            mem,
-            as_attachment=True,
-            download_name=csv_name,
-            mimetype='text/csv'
-        )
+        mem,
+        as_attachment=True,
+        download_name=csv_name,
+        mimetype='text/csv'
+    )
+
+    return redirect(url_for('sample.index'))
 
 @bp.route('/<int:id>/upload', methods=['POST',])
 def upload(id):
@@ -513,7 +500,8 @@ def upload(id):
         print(type(file))
         lab_id = form.lab.data
         filename = secure_filename(file.filename)
-
+        #file_url = 'test url'
+        #file_url = upload_file(file, filename)
         headers = {
             'Authorization': f'Bearer {os.getenv("IMAGE_API")}',
         }
@@ -526,19 +514,13 @@ def upload(id):
         if response.json()['success'] == True:
 
             print(response.json())
-            print(response.json()['result']['variants'])
+            print(response.json()['result']['variants'][0])
             file_url = response.json()['result']['variants'][0]
             db = get_db()
-            cursor = db.execute(
-                'INSERT INTO media (filename, file_url, lab_id, sample_id, user_id)'
-                ' VALUES (?, ?, ?, ?, ?)',
-                (filename, file_url, lab_id, id, user_id)
-            )
-            db.commit()
-            db = get_db()
             db.execute(
-                'UPDATE sample SET primary_image = ? WHERE id = ? ',
-                (cursor.lastrowid, id)
+                'INSERT INTO media (filename, file_url, lab_id, sample_id, user_id, primary_image)'
+                ' VALUES (?, ?, ?, ?, ?, 1)',
+                (filename, file_url, lab_id, id, user_id)
             )
             db.commit()
             print('success')
