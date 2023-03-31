@@ -432,21 +432,41 @@ def makelabels(search_query):
     print(final_url)
     return redirect(url_for('sample.index'))
 
-@bp.route('/make_csv', methods=('POST',))
+@bp.route('/make_csv/', methods=('POST',), defaults={'search_query': None})
+@bp.route('/make_csv/<search_query>', methods=('POST',))
 @login_required
-def make_csv():
-    db = get_db()
-    items=db.execute('''
-            SELECT s.id, isprimary, s.lab_id, title, comment, s.date, s.body, s.created, s.author_id, 
-            email, l.name, s.initials, full_id, transfer_from, n.body as note_body, 
-            n.initials as note_initials, n.note_date
-            FROM sample s  JOIN user u ON s.author_id = u.id
-            JOIN lab l ON s.lab_id = l.id
-            LEFT JOIN ( SELECT body, sample_id, initials, max(date) as note_date FROM note
-            GROUP BY sample_id ) n ON n.sample_id = s.id
-            WHERE s.deleted IS NULL ORDER BY s.created DESC 
-            '''
-            ).fetchall()
+def make_csv(search_query):
+    assert search_query == request.view_args['search_query']
+    print(search_query)
+    if search_query is not None:
+        db = get_db()
+        items=db.execute('''
+                SELECT s.id, isprimary, s.lab_id, title, comment, s.date, s.body, s.created, s.author_id, 
+                email, l.name, s.initials, full_id, transfer_from, n.body as note_body, 
+                n.initials as note_initials, n.note_date
+                FROM sample s  JOIN user u ON s.author_id = u.id
+                JOIN lab l ON s.lab_id = l.id
+                LEFT JOIN ( SELECT body, sample_id, initials, max(date) as note_date FROM note
+                GROUP BY sample_id ) n ON n.sample_id = s.id
+                WHERE s.deleted IS NULL AND full_id LIKE ? ORDER BY s.created DESC 
+                ''',
+                ('%' + search_query + '%',)
+                 ).fetchall()
+    else:
+        db = get_db()
+        items=db.execute('''
+                SELECT s.id, s.isprimary, l.name as lab, s.title, s.comment, s.date, s.body, s.created, u.initials, 
+                s.full_id, s.transfer_from, tf.title, tf.comment, tf.date, n.body as note_body, 
+                n.initials as note_initials, n.note_date
+                FROM sample s
+                JOIN sample tf ON s.transfer_from = tf.id
+                JOIN user u ON s.author_id = u.id
+                JOIN lab l ON s.lab_id = l.id
+                LEFT JOIN ( SELECT body, sample_id, initials, max(date) as note_date FROM note
+                GROUP BY sample_id ) n ON n.sample_id = s.id
+                WHERE s.deleted IS NULL ORDER BY s.created DESC 
+                '''
+                ).fetchall()
 
     csv_name = str(datetime.now().strftime('%Y%m%d-%H%M')) + 'cultures.csv'
 

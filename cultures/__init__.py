@@ -2,6 +2,9 @@ import os
 
 from flask import Flask
 from flask_admin import Admin
+from flask_moment import Moment
+
+moment = Moment()
 
 
 def create_app(test_config=None):
@@ -44,5 +47,7 @@ def create_app(test_config=None):
     from . import sample
     app.register_blueprint(sample.bp)
     app.add_url_rule('/', endpoint='index')
+
+    moment.init_app(app)
 
     return app

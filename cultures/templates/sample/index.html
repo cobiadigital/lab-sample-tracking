@@ -15,7 +15,7 @@
   </form>
         </div>
          <div class="col">
-  <form action="{{ url_for('sample.make_csv') }}" method="post">
+  <form action="{{ url_for('sample.make_csv', search_query=search_query if not None) }}" method="post">
     <input class="danger" type="submit" class="btn btn_secondary" value="Make CSV">
   </form>
          </div>
@@ -39,7 +39,8 @@
             {{ item['comment'] }}
         </div>
         <div class="col-sm-1">
-            {{ item['date'].strftime("%Y%m%d") }}
+            {{ moment( item['date'], local=True).format('YMMDD') }}
+{#            {{ item['date'].strftime("%Y%m%d") }}#}
         </div>
         <div class="col-sm-1">
             {{ item['initials'] }}
