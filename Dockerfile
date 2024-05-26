@@ -4,7 +4,9 @@ RUN apt-get update && \
     apt-get install -y \
         pkg-config \
         libcairo2-dev \
-        build-essential
+        build-essential \
+        libpango1.0-0 \
+        libpangocairo-1.0-0
 
 WORKDIR /culturesFlask
 
