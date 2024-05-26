@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  flask-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/culturesFlask
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5000
+    command: flask --app cultures run --host $HOST --port $PORT
