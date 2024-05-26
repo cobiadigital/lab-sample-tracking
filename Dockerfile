@@ -8,7 +8,7 @@ RUN apt-get update && \
         libpango1.0-0 \
         libpangocairo-1.0-0
 
-WORKDIR /culturesFlask
+WORKDIR /lab-sample-tracking
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt

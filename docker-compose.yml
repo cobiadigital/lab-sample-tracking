@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - .:/culturesFlask
+      - .:/lab-sample-tracking
     environment:
       - HOST=0.0.0.0
       - PORT=5000
