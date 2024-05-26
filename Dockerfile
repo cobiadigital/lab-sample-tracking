@@ -1,5 +1,11 @@
 FROM python:3.12.3-slim-bookworm
 
+RUN apt-get update && \
+    apt-get install -y \
+        pkg-config \
+        libcairo2-dev \
+        build-essential
+
 WORKDIR /culturesFlask
 
 COPY requirements.txt .
