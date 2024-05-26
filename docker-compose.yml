@@ -10,4 +10,4 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=5000
-    command: flask --app cultures --debug --host $HOST --port $PORT run
+    command: flask --app cultures run --host $HOST --port $PORT
