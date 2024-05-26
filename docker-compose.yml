@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  flask-app:
+  lab-sample-tracking:
     build:
       context: .
       dockerfile: Dockerfile

@@ -12,5 +12,3 @@ WORKDIR /culturesFlask
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-
-run --host $HOST --port $PORT
