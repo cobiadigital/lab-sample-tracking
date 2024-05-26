@@ -1,7 +1,7 @@
 venv/
 *.env
 *.pyc
-.idea/
+.idea/*
 .DS_Store
 cultures/.DS_Store
 __pycache__/
