@@ -1,5 +1,7 @@
 services:
   lab-sample-tracking:
+    ports:
+      - 3000:3000
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,4 +10,4 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=80
-    command: flask --app cultures --debug run --host 0.0.0.0 --port 80
+    command: flask --app cultures --debug run --host 0.0.0.0 --port 3000
